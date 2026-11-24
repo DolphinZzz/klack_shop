@@ -1,11 +1,11 @@
 ﻿import { http } from '@/request/http';
 
-export interface LbUserLoginParams {
+export interface ShopUserLoginParams {
   accountOrPhone: string;
   password: string;
 }
 
-export interface LbUserRegisterParams {
+export interface ShopUserRegisterParams {
   account: string;
   password: string;
   phone: string;
@@ -13,7 +13,7 @@ export interface LbUserRegisterParams {
   nickname?: string;
 }
 
-export interface LbUserLoginInfo {
+export interface ShopUserLoginInfo {
   uid: number;
   account: string;
   nickname?: string;
@@ -30,14 +30,14 @@ export interface LbUserLoginInfo {
   expireIn?: number;
 }
 
-export const lbUserLoginApi = (params: LbUserLoginParams) => {
-  return http.post<LbUserLoginInfo>('/client/lb/auth/login', params, { skipAuth: true });
+export const shopUserLoginApi = (params: ShopUserLoginParams) => {
+  return http.post<ShopUserLoginInfo>('/client/shop/auth/login', params, { skipAuth: true });
 };
 
-export const lbUserRegisterApi = (params: LbUserRegisterParams) => {
-  return http.post<void>('/client/lb/auth/register', params, { skipAuth: true });
+export const shopUserRegisterApi = (params: ShopUserRegisterParams) => {
+  return http.post<void>('/client/shop/auth/register', params, { skipAuth: true });
 };
 
-export const lbUserLogoutApi = () => {
-  return http.post<void>('/client/lb/auth/logout');
+export const shopUserLogoutApi = () => {
+  return http.post<void>('/client/shop/auth/logout');
 };

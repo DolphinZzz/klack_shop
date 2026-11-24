@@ -28,33 +28,33 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientHomeController {
 
-    private final ShopHomeService lbHomeService;
+    private final ShopHomeService shopHomeService;
 
     @SaIgnore
     @Operation(summary = "PC端首页聚合数据")
     @GetMapping("/index")
     public ApiResult<ShopHomeIndexVO> frontIndex() {
-        return ApiResult.success(lbHomeService.frontIndex());
+        return ApiResult.success(shopHomeService.frontIndex());
     }
 
     @SaIgnore
     @Operation(summary = "首页新品推荐")
     @GetMapping("/recommend/new")
     public ApiResult<List<ShopHomeNewBookVO>> newRecommend(@RequestParam(value = "size", defaultValue = "8") Integer size) {
-        return ApiResult.success(lbHomeService.newRecommend(size));
+        return ApiResult.success(shopHomeService.newRecommend(size));
     }
 
     @SaIgnore
     @Operation(summary = "首页猜你喜欢")
     @GetMapping("/recommend/guess-like")
     public ApiResult<List<ShopHomeNewBookVO>> guessLike(@RequestParam(value = "size", defaultValue = "8") Integer size) {
-        return ApiResult.success(lbHomeService.guessLike(size));
+        return ApiResult.success(shopHomeService.guessLike(size));
     }
 
     @SaIgnore
     @Operation(summary = "首页秒杀专区")
     @GetMapping("/flash")
     public ApiResult<List<ShopFlashSaleFrontVO>> flashSale(@RequestParam(value = "size", defaultValue = "4") Integer size) {
-        return ApiResult.success(lbHomeService.flashSale(size));
+        return ApiResult.success(shopHomeService.flashSale(size));
     }
 }

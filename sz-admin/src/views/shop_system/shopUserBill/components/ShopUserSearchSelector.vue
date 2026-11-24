@@ -9,7 +9,7 @@
     <el-dialog v-model="dialogVisible" title="选择用户" width="920px" destroy-on-close>
       <div class="toolbar">
         <el-input v-model="query.account" placeholder="用户账号" clearable />
-        <el-input v-model="query.realName" placeholder="用户姓名" clearable />
+        <el-input v-model="query.nickname" placeholder="用户昵称" clearable />
         <el-button type="primary" @click="handleSearch">查询</el-button>
         <el-button @click="handleReset">重置</el-button>
       </div>
@@ -17,7 +17,7 @@
       <el-table v-loading="loading" :data="tableData" border height="460" @row-dblclick="pickUser">
         <el-table-column prop="uid" label="用户ID" width="100" />
         <el-table-column prop="account" label="用户账号" min-width="180" />
-        <el-table-column prop="realName" label="用户姓名" min-width="140" />
+        <el-table-column prop="nickname" label="用户昵称" min-width="140" />
         <el-table-column prop="phone" label="手机号" min-width="150" />
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
@@ -47,7 +47,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { getShopUserListApi } from '@/api/modules/shop_system/shopUser';
-import type { ShopUserRow } from '@/api/types/shop_system/shopUser';
+import type { ShopUserListRow } from '@/api/types/shop_system/shopUser';
 
 defineOptions({
   name: 'ShopUserSearchSelector'
@@ -64,23 +64,23 @@ const emit = defineEmits<{
 
 const dialogVisible = ref(false);
 const loading = ref(false);
-const tableData = ref<ShopUserRow[]>([]);
+const tableData = ref<ShopUserListRow[]>([]);
 const total = ref(0);
-const selectedUser = ref<ShopUserRow | null>(null);
+const selectedUser = ref<ShopUserListRow | null>(null);
 
 const query = reactive({
   current: 1,
   limit: 10,
   account: '',
-  realName: ''
+  nickname: ''
 });
 
 const selectedLabel = computed(() => {
   if (selectedUser.value) {
     const uid = selectedUser.value.uid ?? '-';
     const account = selectedUser.value.account || '-';
-    const realName = selectedUser.value.realName || '-';
-    return `${uid} / ${account} / ${realName}`;
+    const nickname = selectedUser.value.nickname || '-';
+    return `${uid} / ${account} / ${nickname}`;
   }
   if (props.modelValue === 0 || props.modelValue) return String(props.modelValue);
   return '';
@@ -107,7 +107,7 @@ const handleReset = async () => {
   query.current = 1;
   query.limit = 10;
   query.account = '';
-  query.realName = '';
+  query.nickname = '';
   await loadUsers();
 };
 
@@ -116,7 +116,7 @@ const handleSizeChange = async () => {
   await loadUsers();
 };
 
-const pickUser = (row: ShopUserRow) => {
+const pickUser = (row: ShopUserListRow) => {
   selectedUser.value = row;
   emit('update:modelValue', row.uid);
   dialogVisible.value = false;

@@ -31,13 +31,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ClientUserFavoriteController {
 
-    private final ShopUserFavoriteService lbUserFavoriteService;
+    private final ShopUserFavoriteService shopUserFavoriteService;
 
     @Operation(summary = "收藏商品-PC端")
     @SaCheckLogin(type = "shop_user")
     @PostMapping("/create")
     public ApiResult<Void> create(@RequestParam("productId") Long productId) {
-        lbUserFavoriteService.create(StpUserUtil.getLoginIdAsLong(), productId);
+        shopUserFavoriteService.create(StpUserUtil.getLoginIdAsLong(), productId);
         return ApiResult.success();
     }
 
@@ -45,14 +45,14 @@ public class ClientUserFavoriteController {
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/page")
     public ApiResult<PageResult<ShopFrontUserFavoriteVO>> page(ShopUserFavoriteDTO.FrontList dto) {
-        return ApiPageResult.success(lbUserFavoriteService.page(StpUserUtil.getLoginIdAsLong(), dto));
+        return ApiPageResult.success(shopUserFavoriteService.page(StpUserUtil.getLoginIdAsLong(), dto));
     }
 
     @Operation(summary = "批量取消收藏-PC端")
     @SaCheckLogin(type = "shop_user")
     @DeleteMapping("/delete")
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbUserFavoriteService.remove(dto, StpUserUtil.getLoginIdAsLong());
+        shopUserFavoriteService.remove(dto, StpUserUtil.getLoginIdAsLong());
         return ApiResult.success();
     }
 
@@ -60,7 +60,7 @@ public class ClientUserFavoriteController {
     @SaCheckLogin(type = "shop_user")
     @DeleteMapping("/product/{productId}")
     public ApiResult<Void> removeByProduct(@PathVariable("productId") Long productId) {
-        lbUserFavoriteService.removeByProductId(StpUserUtil.getLoginIdAsLong(), productId);
+        shopUserFavoriteService.removeByProductId(StpUserUtil.getLoginIdAsLong(), productId);
         return ApiResult.success();
     }
 
@@ -68,13 +68,13 @@ public class ClientUserFavoriteController {
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/status")
     public ApiResult<ShopFrontUserFavoriteStatusVO> status(@RequestParam("productId") Long productId) {
-        return ApiResult.success(lbUserFavoriteService.status(StpUserUtil.getLoginIdAsLong(), productId));
+        return ApiResult.success(shopUserFavoriteService.status(StpUserUtil.getLoginIdAsLong(), productId));
     }
 
     @Operation(summary = "收藏数量-PC端")
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/count")
     public ApiResult<Integer> count() {
-        return ApiResult.success(lbUserFavoriteService.count(StpUserUtil.getLoginIdAsLong()));
+        return ApiResult.success(shopUserFavoriteService.count(StpUserUtil.getLoginIdAsLong()));
     }
 }

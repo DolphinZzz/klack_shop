@@ -1,5 +1,5 @@
 ﻿export * from '@/api/modules/auth';
-export * from '@/api/modules/lbCategory';
+export * from '@/api/modules/shopCategory';
 export * from '@/api/modules/home';
 export * from '@/api/modules/notice';
 export * from '@/api/modules/product';

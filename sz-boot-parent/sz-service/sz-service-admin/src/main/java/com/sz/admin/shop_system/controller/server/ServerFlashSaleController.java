@@ -27,27 +27,27 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ServerFlashSaleController {
 
-    private final ShopFlashSaleService lbFlashSaleService;
+    private final ShopFlashSaleService shopFlashSaleService;
 
     @Operation(summary = "营销管理列表")
-    @SaCheckPermission(value = "lb.flash.sale.query_table")
+    @SaCheckPermission(value = "shop.flash.sale.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopFlashSaleVO>> list(ShopFlashSaleDTO.ListQuery dto) {
-        return ApiPageResult.success(lbFlashSaleService.page(dto));
+        return ApiPageResult.success(shopFlashSaleService.page(dto));
     }
 
     @Operation(summary = "营销管理详情")
-    @SaCheckPermission(value = "lb.flash.sale.query_table")
+    @SaCheckPermission(value = "shop.flash.sale.query_table")
     @GetMapping("/detail/{productId}")
     public ApiResult<ShopFlashSaleDetailVO> detail(@PathVariable Long productId) {
-        return ApiResult.success(lbFlashSaleService.detail(productId));
+        return ApiResult.success(shopFlashSaleService.detail(productId));
     }
 
     @Operation(summary = "营销管理更新")
-    @SaCheckPermission(value = "lb.flash.sale.update")
+    @SaCheckPermission(value = "shop.flash.sale.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopFlashSaleDTO.Update dto) {
-        lbFlashSaleService.updateMarketing(dto);
+        shopFlashSaleService.updateMarketing(dto);
         return ApiResult.success();
     }
 }

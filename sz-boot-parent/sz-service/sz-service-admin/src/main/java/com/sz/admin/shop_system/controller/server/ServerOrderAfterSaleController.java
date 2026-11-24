@@ -26,35 +26,35 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ServerOrderAfterSaleController {
 
-    private final ShopOrderAfterSaleService lbOrderAfterSaleService;
+    private final ShopOrderAfterSaleService shopOrderAfterSaleService;
 
     @Operation(summary = "管理端售后列表")
-    @SaCheckPermission(value = "lb.order.after.sale.query_table")
+    @SaCheckPermission(value = "shop.order.after.sale.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopOrderAfterSaleVO>> page(ShopOrderAfterSaleDTO.ListQuery dto) {
-        return ApiPageResult.success(lbOrderAfterSaleService.page(dto));
+        return ApiPageResult.success(shopOrderAfterSaleService.page(dto));
     }
 
     @Operation(summary = "管理端售后详情")
-    @SaCheckPermission(value = "lb.order.after.sale.query_table")
+    @SaCheckPermission(value = "shop.order.after.sale.query_table")
     @GetMapping("/detail/{id}")
     public ApiResult<ShopOrderAfterSaleVO> detail(@PathVariable Long id) {
-        return ApiResult.success(lbOrderAfterSaleService.detail(id));
+        return ApiResult.success(shopOrderAfterSaleService.detail(id));
     }
 
     @Operation(summary = "管理端审核售后")
-    @SaCheckPermission(value = "lb.order.after.sale.update")
+    @SaCheckPermission(value = "shop.order.after.sale.update")
     @PostMapping("/audit")
     public ApiResult<Void> audit(@RequestBody ShopOrderAfterSaleDTO.Audit dto) {
-        lbOrderAfterSaleService.audit(dto);
+        shopOrderAfterSaleService.audit(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "管理端确认收货并退款")
-    @SaCheckPermission(value = "lb.order.after.sale.update")
+    @SaCheckPermission(value = "shop.order.after.sale.update")
     @PostMapping("/receive")
     public ApiResult<Void> receive(@RequestBody ShopOrderAfterSaleDTO.Receive dto) {
-        lbOrderAfterSaleService.receive(dto);
+        shopOrderAfterSaleService.receive(dto);
         return ApiResult.success();
     }
 }

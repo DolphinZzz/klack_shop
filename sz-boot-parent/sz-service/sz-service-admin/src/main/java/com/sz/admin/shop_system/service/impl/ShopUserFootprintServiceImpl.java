@@ -23,7 +23,7 @@ public class ShopUserFootprintServiceImpl extends ServiceImpl<ShopUserFootprintM
     private static final int DEFAULT_LIMIT = 20;
     private static final int MAX_LIMIT = 20;
 
-    private final ShopProductService lbProductService;
+    private final ShopProductService shopProductService;
 
     @Override
     public void record(Long userId, Long productId) {
@@ -59,7 +59,7 @@ public class ShopUserFootprintServiceImpl extends ServiceImpl<ShopUserFootprintM
     }
 
     private ShopProduct resolveAvailableProduct(Long productId) {
-        ShopProduct product = lbProductService.getById(productId);
+        ShopProduct product = shopProductService.getById(productId);
         if (product != null
                 && Integer.valueOf(0).equals(product.getIsDel())
                 && Integer.valueOf(1).equals(product.getIsShow())) {

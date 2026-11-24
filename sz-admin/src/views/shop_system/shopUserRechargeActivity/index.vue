@@ -13,14 +13,14 @@
       <template #tableHeader="scope">
         <el-button
           type="primary"
-          v-auth="'lb.user.recharge.activity.create'"
+          v-auth="'shop.user.recharge.activity.create'"
           :icon="CirclePlus"
           @click="openAddEdit('新增充值活动表')"
         >
           新增
         </el-button>
         <el-button
-          v-auth="'lb.user.recharge.activity.remove'"
+          v-auth="'shop.user.recharge.activity.remove'"
           type="danger"
           :icon="Delete"
           plain
@@ -32,7 +32,7 @@
       </template>
       <template #operation="{ row }">
         <el-button
-          v-auth="'lb.user.recharge.activity.update'"
+          v-auth="'shop.user.recharge.activity.update'"
           type="primary"
           link
           :icon="EditPen"
@@ -40,7 +40,7 @@
         >
           编辑
         </el-button>
-        <el-button v-auth="'lb.user.recharge.activity.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)">
+        <el-button v-auth="'shop.user.recharge.activity.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)">
           删除
         </el-button>
       </template>

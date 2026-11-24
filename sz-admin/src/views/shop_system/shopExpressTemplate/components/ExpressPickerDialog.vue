@@ -10,9 +10,9 @@
       </div>
 
       <div class="right">
-        <el-button type="primary" v-auth="'lb.express.create'" @click="openCreate"> 新增快递公司 </el-button>
+        <el-button type="primary" v-auth="'shop.express.create'" @click="openCreate"> 新增快递公司 </el-button>
 
-        <el-button type="danger" plain v-auth="'lb.express.remove'" :disabled="selectedIds.length === 0" @click="batchRemove">
+        <el-button type="danger" plain v-auth="'shop.express.remove'" :disabled="selectedIds.length === 0" @click="batchRemove">
           批量删除
         </el-button>
       </div>
@@ -35,7 +35,7 @@
       <el-table-column label="操作" width="170" fixed="right">
         <template #default="{ row }">
           <el-button type="primary" link @click="handlePick(row)">选择</el-button>
-          <el-button type="danger" link v-auth="'lb.express.remove'" @click="removeOne(row.id)"> 删除 </el-button>
+          <el-button type="danger" link v-auth="'shop.express.remove'" @click="removeOne(row.id)"> 删除 </el-button>
         </template>
       </el-table-column>
     </el-table>

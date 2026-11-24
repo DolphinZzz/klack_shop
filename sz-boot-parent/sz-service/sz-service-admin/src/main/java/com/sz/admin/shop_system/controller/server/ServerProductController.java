@@ -27,56 +27,56 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerProductController {
 
-    private final ShopProductService lbProductService;
+    private final ShopProductService shopProductService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.product.create")
+    @SaCheckPermission(value = "shop.product.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopProductDTO.Create dto) {
-        lbProductService.create(dto);
+        shopProductService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.product.update")
+    @SaCheckPermission(value = "shop.product.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopProductDTO.Update dto) {
-        lbProductService.update(dto);
+        shopProductService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.product.remove")
+    @SaCheckPermission(value = "shop.product.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbProductService.remove(dto);
+        shopProductService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.product.query_table")
+    @SaCheckPermission(value = "shop.product.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopProductVO>> list(ShopProductDTO.ListQuery dto) {
-        return ApiPageResult.success(lbProductService.page(dto));
+        return ApiPageResult.success(shopProductService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.product.query_table")
+    @SaCheckPermission(value = "shop.product.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopProductDetailVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbProductService.detail(id));
+        return ApiResult.success(shopProductService.detail(id));
     }
 
     @Operation(summary = "导出")
-    @SaCheckPermission(value = "lb.product.export")
+    @SaCheckPermission(value = "shop.product.export")
     @PostMapping("/export")
     public void exportExcel(@RequestBody ShopProductDTO.ListQuery dto, HttpServletResponse response) {
-        lbProductService.exportExcel(dto, response);
+        shopProductService.exportExcel(dto, response);
     }
 
     @Operation(summary = "后台管理-商品详情")
     @GetMapping("/detail/{productId}")
     public ApiResult<ShopProductDetailVO> getDetail(@PathVariable Integer productId) {
-        return ApiResult.success(lbProductService.detail(productId));
+        return ApiResult.success(shopProductService.detail(productId));
     }
 }

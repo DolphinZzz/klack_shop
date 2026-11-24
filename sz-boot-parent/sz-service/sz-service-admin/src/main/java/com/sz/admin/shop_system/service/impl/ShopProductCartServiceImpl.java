@@ -43,8 +43,8 @@ public class ShopProductCartServiceImpl extends ServiceImpl<ShopProductCartMappe
             return;
         }
 
-        ShopProductCart lbProductCart = buildNewCartItem(dto, userId, cartNum);
-        save(lbProductCart);
+        ShopProductCart shopProductCart = buildNewCartItem(dto, userId, cartNum);
+        save(shopProductCart);
     }
 
     @Override
@@ -103,12 +103,12 @@ public class ShopProductCartServiceImpl extends ServiceImpl<ShopProductCartMappe
     }
 
     private ShopProductCart buildNewCartItem(ShopProductCartDTO.Create dto, Long userId, int cartNum) {
-        ShopProductCart lbProductCart = BeanCopyUtils.copy(dto, ShopProductCart.class);
-        lbProductCart.setUid(userId);
-        lbProductCart.setCartNum(cartNum);
-        if (lbProductCart.getStatus() == null) {
-            lbProductCart.setStatus(0);
+        ShopProductCart shopProductCart = BeanCopyUtils.copy(dto, ShopProductCart.class);
+        shopProductCart.setUid(userId);
+        shopProductCart.setCartNum(cartNum);
+        if (shopProductCart.getStatus() == null) {
+            shopProductCart.setStatus(0);
         }
-        return lbProductCart;
+        return shopProductCart;
     }
 }

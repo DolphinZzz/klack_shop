@@ -282,9 +282,6 @@ const changeImage = (url: string) => {
 const selectSku = (entry: SkuEntry) => {
   selectedSkuKey.value = entry.normalizedKey;
   selectedSkuParts.value = [...entry.parts];
-  if (entry.value?.image) {
-    activeImage.value = entry.value.image;
-  }
 };
 
 const pickSkuOption = (groupIndex: number, option: string) => {

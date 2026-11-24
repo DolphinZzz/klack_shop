@@ -30,33 +30,33 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientHomeNewsController {
 
-    private final ShopHomeNewsService lbHomeNewsService;
+    private final ShopHomeNewsService shopHomeNewsService;
 
     @SaIgnore
     @Operation(summary = "首页资讯列表")
     @GetMapping("/index")
     public ApiResult<List<ShopHomeNewsVO>> frontList(@RequestParam(value = "size", defaultValue = "3") Integer size) {
-        return ApiResult.success(lbHomeNewsService.frontList(size));
+        return ApiResult.success(shopHomeNewsService.frontList(size));
     }
 
     @SaIgnore
     @Operation(summary = "资讯频道分页")
     @GetMapping("/page")
     public ApiResult<PageResult<ShopHomeNewsVO>> frontPage(ShopHomeNewsDTO.FrontPage dto) {
-        return ApiPageResult.success(lbHomeNewsService.frontPage(dto));
+        return ApiPageResult.success(shopHomeNewsService.frontPage(dto));
     }
 
     @SaIgnore
     @Operation(summary = "热门资讯")
     @GetMapping("/hot")
     public ApiResult<List<ShopHomeNewsVO>> hotList(@RequestParam(value = "size", defaultValue = "5") Integer size) {
-        return ApiResult.success(lbHomeNewsService.hotList(size));
+        return ApiResult.success(shopHomeNewsService.hotList(size));
     }
 
     @SaIgnore
     @Operation(summary = "资讯详情")
     @GetMapping("/{id}")
     public ApiResult<ShopHomeNewsVO> frontDetail(@PathVariable Object id) {
-        return ApiResult.success(lbHomeNewsService.frontDetail(id));
+        return ApiResult.success(shopHomeNewsService.frontDetail(id));
     }
 }

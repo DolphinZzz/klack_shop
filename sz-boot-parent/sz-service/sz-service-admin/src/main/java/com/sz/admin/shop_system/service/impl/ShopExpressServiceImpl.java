@@ -33,15 +33,15 @@ public class ShopExpressServiceImpl extends ServiceImpl<ShopExpressMapper, ShopE
 
     @Override
     public void create(ShopExpressDTO.Create dto) {
-        ShopExpress lbExpress = BeanCopyUtils.copy(dto, ShopExpress.class);
-        save(lbExpress);
+        ShopExpress shopExpress = BeanCopyUtils.copy(dto, ShopExpress.class);
+        save(shopExpress);
     }
 
     @Override
     public void update(ShopExpressDTO.Update dto) {
         CommonResponseEnum.INVALID_ID.assertTrue(dto.getId() == null || getById(dto.getId()) == null);
-        ShopExpress lbExpress = BeanCopyUtils.copy(dto, ShopExpress.class);
-        saveOrUpdate(lbExpress);
+        ShopExpress shopExpress = BeanCopyUtils.copy(dto, ShopExpress.class);
+        saveOrUpdate(shopExpress);
     }
 
     @Override
@@ -75,8 +75,8 @@ public class ShopExpressServiceImpl extends ServiceImpl<ShopExpressMapper, ShopE
 
     @Override
     public ShopExpressVO detail(Object id) {
-        ShopExpress lbExpress = getById((Serializable) id);
-        CommonResponseEnum.INVALID_ID.assertNull(lbExpress);
-        return BeanCopyUtils.copy(lbExpress, ShopExpressVO.class);
+        ShopExpress shopExpress = getById((Serializable) id);
+        CommonResponseEnum.INVALID_ID.assertNull(shopExpress);
+        return BeanCopyUtils.copy(shopExpress, ShopExpressVO.class);
     }
 }

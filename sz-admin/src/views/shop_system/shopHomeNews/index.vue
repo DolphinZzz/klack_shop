@@ -10,11 +10,11 @@
       row-key="id"
     >
       <template #tableHeader="scope">
-        <el-button type="primary" v-auth="'lb.home.news.create'" :icon="CirclePlus" @click="openAddEdit('新增首页资讯')">
+        <el-button type="primary" v-auth="'shop.home.news.create'" :icon="CirclePlus" @click="openAddEdit('新增首页资讯')">
           新增
         </el-button>
         <el-button
-          v-auth="'lb.home.news.remove'"
+          v-auth="'shop.home.news.remove'"
           type="danger"
           :icon="Delete"
           plain
@@ -29,7 +29,7 @@
       </template>
       <template #operation="{ row }">
         <el-button
-          v-auth="'lb.home.news.update'"
+          v-auth="'shop.home.news.update'"
           type="primary"
           link
           :icon="EditPen"
@@ -37,7 +37,7 @@
         >
           编辑
         </el-button>
-        <el-button v-auth="'lb.home.news.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)"> 删除 </el-button>
+        <el-button v-auth="'shop.home.news.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)"> 删除 </el-button>
       </template>
     </ProTable>
     <ShopHomeNewsForm ref="shopHomeNewsRef" />

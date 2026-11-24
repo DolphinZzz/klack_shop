@@ -11,11 +11,11 @@
     >
       <!-- 表格 header 按钮 -->
       <template #tableHeader="scope">
-        <el-button type="primary" v-auth="'lb.home.banner.create'" :icon="CirclePlus" @click="openAddEdit('新增首页轮播配置')">
+        <el-button type="primary" v-auth="'shop.home.banner.create'" :icon="CirclePlus" @click="openAddEdit('新增首页轮播配置')">
           新增
         </el-button>
         <el-button
-          v-auth="'lb.home.banner.remove'"
+          v-auth="'shop.home.banner.remove'"
           type="danger"
           :icon="Delete"
           plain
@@ -30,7 +30,7 @@
       </template>
       <template #operation="{ row }">
         <el-button
-          v-auth="'lb.home.banner.update'"
+          v-auth="'shop.home.banner.update'"
           type="primary"
           link
           :icon="EditPen"
@@ -38,7 +38,7 @@
         >
           编辑
         </el-button>
-        <el-button v-auth="'lb.home.banner.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)"> 删除 </el-button>
+        <el-button v-auth="'shop.home.banner.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)"> 删除 </el-button>
       </template>
     </ProTable>
     <ShopHomeBannerForm ref="shopHomeBannerRef" />

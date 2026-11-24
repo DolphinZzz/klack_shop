@@ -38,23 +38,23 @@ public class ShopCategoryServiceImpl extends ServiceImpl<ShopCategoryMapper, Sho
 
     @Override
     public void create(ShopCategoryDTO.Create dto) {
-        ShopCategory lbCategory = BeanCopyUtils.copy(dto, ShopCategory.class);
-        save(lbCategory);
+        ShopCategory shopCategory = BeanCopyUtils.copy(dto, ShopCategory.class);
+        save(shopCategory);
     }
 
     @Override
     public void update(ShopCategoryDTO.Update dto) {
         validateCategoryExists(dto.getId());
-        ShopCategory lbCategory = BeanCopyUtils.copy(dto, ShopCategory.class);
-        saveOrUpdate(lbCategory);
+        ShopCategory shopCategory = BeanCopyUtils.copy(dto, ShopCategory.class);
+        saveOrUpdate(shopCategory);
     }
 
     @Override
     public PageResult<ShopCategoryVO> page(ShopCategoryDTO.ListQuery dto) {
         try {
             SimpleDataScopeHelper.start(ShopCategory.class);
-            List<ShopCategory> lbCategories = mapper.selectAllCategories();
-            List<ShopCategory> filteredCategories = filterRootCategoriesByCateName(lbCategories, dto.getCateName());
+            List<ShopCategory> shopCategories = mapper.selectAllCategories();
+            List<ShopCategory> filteredCategories = filterRootCategoriesByCateName(shopCategories, dto.getCateName());
             List<ShopCategoryVO> tree = buildTree(filteredCategories);
             List<ShopCategoryVO> pageData = sliceTreePage(tree, dto.getPage(), dto.getLimit());
             return PageUtils.getPageResult(dto.getPage(), dto.getLimit(), pageData, tree.size());
@@ -106,11 +106,11 @@ public class ShopCategoryServiceImpl extends ServiceImpl<ShopCategoryMapper, Sho
     public ShopCategoryVO detail(Object id) {
         try {
             SimpleDataScopeHelper.start(ShopCategory.class);
-            ShopCategory lbCategory = getById((Serializable) id);
-            CommonResponseEnum.INVALID_ID.assertNull(lbCategory);
+            ShopCategory shopCategory = getById((Serializable) id);
+            CommonResponseEnum.INVALID_ID.assertNull(shopCategory);
 
-            List<ShopCategory> childCategories = mapper.selectChildrenByPid(lbCategory.getId());
-            return assembleCategoryDetail(lbCategory, childCategories);
+            List<ShopCategory> childCategories = mapper.selectChildrenByPid(shopCategory.getId());
+            return assembleCategoryDetail(shopCategory, childCategories);
         } finally {
             SimpleDataScopeHelper.clearDataScope();
         }
@@ -120,8 +120,8 @@ public class ShopCategoryServiceImpl extends ServiceImpl<ShopCategoryMapper, Sho
     public List<ShopCategoryVO> cateChildrenList() {
         try {
             SimpleDataScopeHelper.start(ShopCategory.class);
-            List<ShopCategory> lbCategories = mapper.selectAllCategories();
-            return buildTree(lbCategories);
+            List<ShopCategory> shopCategories = mapper.selectAllCategories();
+            return buildTree(shopCategories);
         } finally {
             SimpleDataScopeHelper.clearDataScope();
         }
@@ -149,8 +149,8 @@ public class ShopCategoryServiceImpl extends ServiceImpl<ShopCategoryMapper, Sho
         return categoryVO;
     }
 
-    private ShopCategoryVO assembleCategoryDetail(ShopCategory lbCategory, List<ShopCategory> childCategories) {
-        ShopCategoryVO categoryVO = BeanCopyUtils.copy(lbCategory, ShopCategoryVO.class);
+    private ShopCategoryVO assembleCategoryDetail(ShopCategory shopCategory, List<ShopCategory> childCategories) {
+        ShopCategoryVO categoryVO = BeanCopyUtils.copy(shopCategory, ShopCategoryVO.class);
         if (childCategories != null && !childCategories.isEmpty()) {
             List<ShopCategoryVO> children = childCategories.stream()
                     .map(child -> BeanCopyUtils.copy(child, ShopCategoryVO.class))

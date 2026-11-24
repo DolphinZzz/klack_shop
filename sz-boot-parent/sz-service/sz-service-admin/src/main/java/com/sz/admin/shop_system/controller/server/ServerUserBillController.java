@@ -26,50 +26,50 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerUserBillController {
 
-    private final ShopUserBillService lbUserBillService;
+    private final ShopUserBillService shopUserBillService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.user.bill.create")
+    @SaCheckPermission(value = "shop.user.bill.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopUserBillDTO.Create dto) {
-        lbUserBillService.create(dto);
+        shopUserBillService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.user.bill.update")
+    @SaCheckPermission(value = "shop.user.bill.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopUserBillDTO.Update dto) {
-        lbUserBillService.update(dto);
+        shopUserBillService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.user.bill.remove")
+    @SaCheckPermission(value = "shop.user.bill.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbUserBillService.remove(dto);
+        shopUserBillService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.user.bill.query_table")
+    @SaCheckPermission(value = "shop.user.bill.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopUserBillVO>> list(ShopUserBillDTO.ListQuery dto) {
-        return ApiPageResult.success(lbUserBillService.page(dto));
+        return ApiPageResult.success(shopUserBillService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.user.bill.query_table")
+    @SaCheckPermission(value = "shop.user.bill.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopUserBillVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbUserBillService.detail(id));
+        return ApiResult.success(shopUserBillService.detail(id));
     }
 
     @Operation(summary = "导出")
-    @SaCheckPermission(value = "lb.user.bill.export")
+    @SaCheckPermission(value = "shop.user.bill.export")
     @PostMapping("/export")
     public void exportExcel(@RequestBody ShopUserBillDTO.ListQuery dto, HttpServletResponse response) {
-        lbUserBillService.exportExcel(dto, response);
+        shopUserBillService.exportExcel(dto, response);
     }
 }

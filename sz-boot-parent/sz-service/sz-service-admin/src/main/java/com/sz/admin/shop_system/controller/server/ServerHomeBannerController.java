@@ -25,43 +25,43 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerHomeBannerController {
 
-    private final ShopHomeBannerService lbHomeBannerService;
+    private final ShopHomeBannerService shopHomeBannerService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.home.banner.create")
+    @SaCheckPermission(value = "shop.home.banner.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopHomeBannerDTO.Create dto) {
-        lbHomeBannerService.create(dto);
+        shopHomeBannerService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.home.banner.update")
+    @SaCheckPermission(value = "shop.home.banner.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopHomeBannerDTO.Update dto) {
-        lbHomeBannerService.update(dto);
+        shopHomeBannerService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.home.banner.remove")
+    @SaCheckPermission(value = "shop.home.banner.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbHomeBannerService.remove(dto);
+        shopHomeBannerService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.home.banner.query_table")
+    @SaCheckPermission(value = "shop.home.banner.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopHomeBannerVO>> list(ShopHomeBannerDTO.ListQuery dto) {
-        return ApiPageResult.success(lbHomeBannerService.page(dto));
+        return ApiPageResult.success(shopHomeBannerService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.home.banner.query_table")
+    @SaCheckPermission(value = "shop.home.banner.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopHomeBannerVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbHomeBannerService.detail(id));
+        return ApiResult.success(shopHomeBannerService.detail(id));
     }
 }

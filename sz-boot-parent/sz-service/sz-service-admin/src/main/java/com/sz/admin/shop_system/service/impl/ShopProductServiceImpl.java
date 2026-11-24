@@ -70,7 +70,7 @@ import java.util.stream.Stream;
 public class ShopProductServiceImpl extends ServiceImpl<ShopProductMapper, ShopProduct> implements ShopProductService {
 
     private final ShopCategoryService categoryService;
-    private final ShopFlashSaleService lbFlashSaleService;
+    private final ShopFlashSaleService shopFlashSaleService;
     private final ShopProductAttrService productAttrService;
     private final ShopProductAttrValueService productAttrValueService;
     private final ShopProductAttrMapper productAttrMapper;
@@ -82,10 +82,10 @@ public class ShopProductServiceImpl extends ServiceImpl<ShopProductMapper, ShopP
         validateWritePayload(dto.getAttrList(), dto.getAttrValueList(), dto.getSliderImages());
         normalizeDefaultFlag(dto.getAttrValueList());
 
-        ShopProduct lbProduct = buildProductForCreate(dto);
-        save(lbProduct);
+        ShopProduct shopProduct = buildProductForCreate(dto);
+        save(shopProduct);
 
-        Long productId = lbProduct.getId();
+        Long productId = shopProduct.getId();
         persistAttrsAndSkus(productId, dto.getAttrList(), dto.getAttrValueList());
         updateProductSummaryFromSkus(productId, dto.getAttrValueList());
     }
@@ -139,12 +139,12 @@ public class ShopProductServiceImpl extends ServiceImpl<ShopProductMapper, ShopP
 
     @Override
     public ShopProductDetailVO detail(Object id) {
-        ShopProduct lbProduct = getById((Serializable) id);
-        CommonResponseEnum.INVALID_ID.assertNull(lbProduct);
+        ShopProduct shopProduct = getById((Serializable) id);
+        CommonResponseEnum.INVALID_ID.assertNull(shopProduct);
 
-        List<ShopProductAttr> productAttrs = productAttrMapper.selectByProductId(lbProduct.getId());
-        List<ShopProductAttrValue> attrValues = productAttrValueMapper.selectByProductId(lbProduct.getId());
-        return assembleProductDetailVO(lbProduct, productAttrs, attrValues);
+        List<ShopProductAttr> productAttrs = productAttrMapper.selectByProductId(shopProduct.getId());
+        List<ShopProductAttrValue> attrValues = productAttrValueMapper.selectByProductId(shopProduct.getId());
+        return assembleProductDetailVO(shopProduct, productAttrs, attrValues);
     }
 
     @SneakyThrows
@@ -207,10 +207,10 @@ public class ShopProductServiceImpl extends ServiceImpl<ShopProductMapper, ShopP
     }
 
     private ShopProduct buildProductForCreate(ShopProductDTO.Create dto) {
-        ShopProduct lbProduct = BeanCopyUtils.copy(dto, ShopProduct.class);
-        lbProduct.setSliderImage(String.join(",", dto.getSliderImages()));
-        normalizeShippingFields(lbProduct);
-        return lbProduct;
+        ShopProduct shopProduct = BeanCopyUtils.copy(dto, ShopProduct.class);
+        shopProduct.setSliderImage(String.join(",", dto.getSliderImages()));
+        normalizeShippingFields(shopProduct);
+        return shopProduct;
     }
 
     private ShopProduct buildProductForUpdate(ShopProductDTO.Update dto, Long productId) {
@@ -304,12 +304,12 @@ public class ShopProductServiceImpl extends ServiceImpl<ShopProductMapper, ShopP
         return update;
     }
 
-    private ShopProductDetailVO assembleProductDetailVO(ShopProduct lbProduct,
+    private ShopProductDetailVO assembleProductDetailVO(ShopProduct shopProduct,
                                                       List<ShopProductAttr> productAttrs,
                                                       List<ShopProductAttrValue> attrValueList) {
-        ShopProductDetailVO productDetailVO = BeanCopyUtils.copy(lbProduct, ShopProductDetailVO.class);
+        ShopProductDetailVO productDetailVO = BeanCopyUtils.copy(shopProduct, ShopProductDetailVO.class);
 
-        List<ShopProductAttrVO> productAttrVOList = buildAttrVOList(productAttrs, lbProduct);
+        List<ShopProductAttrVO> productAttrVOList = buildAttrVOList(productAttrs, shopProduct);
         productDetailVO.setAttrList(productAttrVOList);
 
         List<String> attrNameList = productAttrVOList.stream()
@@ -332,7 +332,7 @@ public class ShopProductServiceImpl extends ServiceImpl<ShopProductMapper, ShopP
             skuMap.put(productAttrValue.getSku(), productAttrValueVo);
         }
         productDetailResponse.setProductValue(skuMap);
-        productDetailResponse.setFlashSale(lbFlashSaleService.frontDetail(product.getId()));
+        productDetailResponse.setFlashSale(shopFlashSaleService.frontDetail(product.getId()));
         return productDetailResponse;
     }
 
@@ -380,7 +380,7 @@ public class ShopProductServiceImpl extends ServiceImpl<ShopProductMapper, ShopP
         return result;
     }
 
-    private static List<ShopProductAttrVO> buildAttrVOList(List<ShopProductAttr> productAttrs, ShopProduct lbProduct) {
+    private static List<ShopProductAttrVO> buildAttrVOList(List<ShopProductAttr> productAttrs, ShopProduct shopProduct) {
         List<ShopProductAttrVO> productAttrVOList = new ArrayList<>();
         for (ShopProductAttr attr : productAttrs) {
             ShopProductAttrVO attrVO = new ShopProductAttrVO();
@@ -397,7 +397,7 @@ public class ShopProductServiceImpl extends ServiceImpl<ShopProductMapper, ShopP
                 ShopProductAttrOption attrOption = new ShopProductAttrOption();
                 attrOption.setAttrId(attr.getId());
                 attrOption.setOptionName(opt.trim());
-                attrOption.setProductId(lbProduct.getId());
+                attrOption.setProductId(shopProduct.getId());
                 optionList.add(attrOption);
             }
 

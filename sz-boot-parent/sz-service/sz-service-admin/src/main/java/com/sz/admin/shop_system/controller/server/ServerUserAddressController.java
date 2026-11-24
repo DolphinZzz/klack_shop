@@ -23,11 +23,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ServerUserAddressController {
 
-    private final ShopUserAddressService lbUserAddressService;
+    private final ShopUserAddressService shopUserAddressService;
 
     @Operation(summary = "详情")
     @GetMapping("/{id}")
     public ApiResult<ShopUserAddressVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbUserAddressService.detail(id));
+        return ApiResult.success(shopUserAddressService.detail(id));
     }
 }

@@ -24,7 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ShopUserIntegralBillServiceImpl extends ServiceImpl<ShopUserIntegralBillMapper, ShopUserIntegralBill> implements ShopUserIntegralBillService {
 
-    private final ShopUserMapper lbUserMapper;
+    private final ShopUserMapper shopUserMapper;
 
     @Override
     public PageResult<ShopFrontUserIntegralBillVO> frontPage(Long userId, ShopUserBillDTO.FrontIntegralList dto) {
@@ -59,7 +59,7 @@ public class ShopUserIntegralBillServiceImpl extends ServiceImpl<ShopUserIntegra
         if (userId == null) {
             return 0;
         }
-        ShopUser user = lbUserMapper.selectOneById(userId);
+        ShopUser user = shopUserMapper.selectOneById(userId);
         return user == null || user.getIntegral() == null ? 0 : user.getIntegral();
     }
 

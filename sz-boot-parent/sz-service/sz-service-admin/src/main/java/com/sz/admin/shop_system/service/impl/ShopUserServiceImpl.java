@@ -9,6 +9,7 @@ import com.sz.admin.shop_system.mapper.ShopUserMapper;
 import com.sz.admin.shop_system.pojo.dto.ShopUserDTO;
 import com.sz.admin.shop_system.pojo.po.ShopUser;
 import com.sz.admin.shop_system.pojo.vo.ShopFrontUserProfileVO;
+import com.sz.admin.shop_system.pojo.vo.ShopUserListVO;
 import com.sz.admin.shop_system.pojo.vo.ShopUserVO;
 import com.sz.admin.shop_system.service.ShopUserService;
 import com.sz.core.common.entity.ImportExcelDTO;
@@ -48,23 +49,23 @@ public class ShopUserServiceImpl extends ServiceImpl<ShopUserMapper, ShopUser> i
     @Override
     public void create(ShopUserDTO.Create dto) {
         validateAdminUserUnique(dto.getAccount(), dto.getCardId(), null);
-        ShopUser lbUser = BeanCopyUtils.copy(dto, ShopUser.class);
-        save(lbUser);
+        ShopUser shopUser = BeanCopyUtils.copy(dto, ShopUser.class);
+        save(shopUser);
     }
 
     @Override
     public void update(ShopUserDTO.Update dto) {
         CommonResponseEnum.INVALID_ID.assertTrue(dto.getUid() == null || mapper.countByUid(dto.getUid()) <= 0);
         validateAdminUserUnique(dto.getAccount(), dto.getCardId(), dto.getUid());
-        ShopUser lbUser = BeanCopyUtils.copy(dto, ShopUser.class);
-        saveOrUpdate(lbUser);
+        ShopUser shopUser = BeanCopyUtils.copy(dto, ShopUser.class);
+        saveOrUpdate(shopUser);
     }
 
     @Override
-    public PageResult<ShopUserVO> page(ShopUserDTO.ListQuery dto) {
+    public PageResult<ShopUserListVO> page(ShopUserDTO.ListQuery dto) {
         PageUtils.toPage(dto);
         try {
-            List<ShopUserVO> list = mapper.selectUserList(dto);
+            List<ShopUserListVO> list = mapper.selectUserList(dto);
             return PageUtils.getPageResult(list);
         } finally {
             PageHelper.clearPage();
@@ -72,7 +73,7 @@ public class ShopUserServiceImpl extends ServiceImpl<ShopUserMapper, ShopUser> i
     }
 
     @Override
-    public List<ShopUserVO> list(ShopUserDTO.ListQuery dto) {
+    public List<ShopUserListVO> list(ShopUserDTO.ListQuery dto) {
         return mapper.selectUserList(dto);
     }
 
@@ -84,9 +85,9 @@ public class ShopUserServiceImpl extends ServiceImpl<ShopUserMapper, ShopUser> i
 
     @Override
     public ShopUserVO detail(Object id) {
-        ShopUser lbUser = getById((Serializable) id);
-        CommonResponseEnum.INVALID_ID.assertNull(lbUser);
-        return BeanCopyUtils.copy(lbUser, ShopUserVO.class);
+        ShopUser shopUser = getById((Serializable) id);
+        CommonResponseEnum.INVALID_ID.assertNull(shopUser);
+        return BeanCopyUtils.copy(shopUser, ShopUserVO.class);
     }
 
     @SneakyThrows
@@ -105,22 +106,22 @@ public class ShopUserServiceImpl extends ServiceImpl<ShopUserMapper, ShopUser> i
     @SneakyThrows
     @Override
     public void exportExcel(ShopUserDTO.ListQuery dto, HttpServletResponse response) {
-        List<ShopUserVO> list = list(dto);
+        List<ShopUserListVO> list = list(dto);
         String fileName = "用户表模板";
         OutputStream os = FileUtils.getOutputStream(response, fileName + ".xlsx");
-        ExcelUtils.exportExcel(list, "用户表", ShopUserVO.class, os);
+        ExcelUtils.exportExcel(list, "用户表", ShopUserListVO.class, os);
     }
 
     @Override
     public ShopUserVO getLoginUserByAccount(String account) {
-        ShopUser lbUser = mapper.selectOneByAccount(account);
-        return assembleLoginUser(lbUser);
+        ShopUser shopUser = mapper.selectOneByAccount(account);
+        return assembleLoginUser(shopUser);
     }
 
     @Override
     public ShopUserVO getLoginUserByPhone(String phone) {
-        ShopUser lbUser = mapper.selectOneByPhone(phone);
-        return assembleLoginUser(lbUser);
+        ShopUser shopUser = mapper.selectOneByPhone(phone);
+        return assembleLoginUser(shopUser);
     }
 
     @Override
@@ -141,16 +142,16 @@ public class ShopUserServiceImpl extends ServiceImpl<ShopUserMapper, ShopUser> i
     @Override
     public void userRegister(ShopUserDTO.Register dto) {
         validateRegisterUnique(dto.getAccount(), dto.getPhone());
-        ShopUser lbUser = buildRegisterUser(dto);
-        save(lbUser);
+        ShopUser shopUser = buildRegisterUser(dto);
+        save(shopUser);
     }
 
     @Override
     public ShopFrontUserProfileVO getFrontProfile(Long uid) {
         CommonResponseEnum.INVALID.message("用户信息异常").assertNull(uid);
-        ShopUser lbUser = getById(uid);
-        CommonResponseEnum.INVALID_USER.assertNull(lbUser);
-        return BeanCopyUtils.copy(lbUser, ShopFrontUserProfileVO.class);
+        ShopUser shopUser = getById(uid);
+        CommonResponseEnum.INVALID_USER.assertNull(shopUser);
+        return BeanCopyUtils.copy(shopUser, ShopFrontUserProfileVO.class);
     }
 
     @Override
@@ -230,26 +231,26 @@ public class ShopUserServiceImpl extends ServiceImpl<ShopUserMapper, ShopUser> i
     }
 
     private ShopUser buildRegisterUser(ShopUserDTO.Register dto) {
-        ShopUser lbUser = new ShopUser();
-        lbUser.setAccount(dto.getAccount());
-        lbUser.setPassword(SaSecureUtil.md5(dto.getPassword()));
-        lbUser.setPhone(dto.getPhone());
+        ShopUser shopUser = new ShopUser();
+        shopUser.setAccount(dto.getAccount());
+        shopUser.setPassword(SaSecureUtil.md5(dto.getPassword()));
+        shopUser.setPhone(dto.getPhone());
 
         if (StrUtil.isNotBlank(dto.getRealName())) {
-            lbUser.setRealName(dto.getRealName());
+            shopUser.setRealName(dto.getRealName());
         }
         if (StrUtil.isNotBlank(dto.getNickname())) {
-            lbUser.setNickname(dto.getNickname());
+            shopUser.setNickname(dto.getNickname());
         }
 
-        lbUser.setStatus(0);
-        lbUser.setSex(0);
-        lbUser.setLevel(1);
-        lbUser.setIntegral(0);
-        lbUser.setExperience(0);
-        lbUser.setSignNum(0);
-        lbUser.setNowMoney(new BigDecimal("0"));
-        return lbUser;
+        shopUser.setStatus(0);
+        shopUser.setSex(0);
+        shopUser.setLevel(1);
+        shopUser.setIntegral(0);
+        shopUser.setExperience(0);
+        shopUser.setSignNum(0);
+        shopUser.setNowMoney(new BigDecimal("0"));
+        return shopUser;
     }
 
     private ShopUser buildFrontProfileUpdateEntity(Long uid, String account, String phone, ShopUserDTO.FrontProfileUpdate dto) {

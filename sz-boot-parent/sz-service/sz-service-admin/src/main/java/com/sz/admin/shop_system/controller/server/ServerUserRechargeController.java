@@ -26,50 +26,50 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerUserRechargeController {
 
-    private final ShopUserRechargeService lbUserRechargeService;
+    private final ShopUserRechargeService shopUserRechargeService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.user.recharge.create")
+    @SaCheckPermission(value = "shop.user.recharge.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopUserRechargeDTO.Create dto) {
-        lbUserRechargeService.create(dto);
+        shopUserRechargeService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.user.recharge.update")
+    @SaCheckPermission(value = "shop.user.recharge.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopUserRechargeDTO.Update dto) {
-        lbUserRechargeService.update(dto);
+        shopUserRechargeService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.user.recharge.remove")
+    @SaCheckPermission(value = "shop.user.recharge.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbUserRechargeService.remove(dto);
+        shopUserRechargeService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.user.recharge.query_table")
+    @SaCheckPermission(value = "shop.user.recharge.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopUserRechargeVO>> list(ShopUserRechargeDTO.ListQuery dto) {
-        return ApiPageResult.success(lbUserRechargeService.page(dto));
+        return ApiPageResult.success(shopUserRechargeService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.user.recharge.query_table")
+    @SaCheckPermission(value = "shop.user.recharge.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopUserRechargeVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbUserRechargeService.detail(id));
+        return ApiResult.success(shopUserRechargeService.detail(id));
     }
 
     @Operation(summary = "导出")
-    @SaCheckPermission(value = "lb.user.recharge.export")
+    @SaCheckPermission(value = "shop.user.recharge.export")
     @PostMapping("/export")
     public void exportExcel(@RequestBody ShopUserRechargeDTO.ListQuery dto, HttpServletResponse response) {
-        lbUserRechargeService.exportExcel(dto, response);
+        shopUserRechargeService.exportExcel(dto, response);
     }
 }

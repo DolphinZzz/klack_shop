@@ -26,50 +26,50 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerExpressTemplateController {
 
-    private final ShopExpressTemplateService lbExpressTemplateService;
+    private final ShopExpressTemplateService shopExpressTemplateService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.express.template.create")
+    @SaCheckPermission(value = "shop.express.template.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopExpressTemplateDTO.Create dto) {
-        lbExpressTemplateService.create(dto);
+        shopExpressTemplateService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.express.template.update")
+    @SaCheckPermission(value = "shop.express.template.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopExpressTemplateDTO.Update dto) {
-        lbExpressTemplateService.update(dto);
+        shopExpressTemplateService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.express.template.remove")
+    @SaCheckPermission(value = "shop.express.template.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbExpressTemplateService.remove(dto);
+        shopExpressTemplateService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.express.template.query_table")
+    @SaCheckPermission(value = "shop.express.template.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopExpressTemplateVO>> list(ShopExpressTemplateDTO.ListQuery dto) {
-        return ApiPageResult.success(lbExpressTemplateService.page(dto));
+        return ApiPageResult.success(shopExpressTemplateService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.express.template.query_table")
+    @SaCheckPermission(value = "shop.express.template.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopExpressTemplateVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbExpressTemplateService.detail(id));
+        return ApiResult.success(shopExpressTemplateService.detail(id));
     }
 
     @Operation(summary = "导出")
-    @SaCheckPermission(value = "lb.express.template.export")
+    @SaCheckPermission(value = "shop.express.template.export")
     @PostMapping("/export")
     public void exportExcel(@RequestBody ShopExpressTemplateDTO.ListQuery dto, HttpServletResponse response) {
-        lbExpressTemplateService.exportExcel(dto, response);
+        shopExpressTemplateService.exportExcel(dto, response);
     }
 }

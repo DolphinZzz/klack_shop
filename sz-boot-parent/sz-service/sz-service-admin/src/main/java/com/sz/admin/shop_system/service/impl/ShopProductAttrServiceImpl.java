@@ -33,15 +33,15 @@ public class ShopProductAttrServiceImpl extends ServiceImpl<ShopProductAttrMappe
 
     @Override
     public void create(ShopProductAttrDTO.Create dto) {
-        ShopProductAttr lbProductAttr = BeanCopyUtils.copy(dto, ShopProductAttr.class);
-        save(lbProductAttr);
+        ShopProductAttr shopProductAttr = BeanCopyUtils.copy(dto, ShopProductAttr.class);
+        save(shopProductAttr);
     }
 
     @Override
     public void update(ShopProductAttrDTO.Update dto) {
         CommonResponseEnum.INVALID_ID.assertTrue(dto.getId() == null || getById(dto.getId()) == null);
-        ShopProductAttr lbProductAttr = BeanCopyUtils.copy(dto, ShopProductAttr.class);
-        saveOrUpdate(lbProductAttr);
+        ShopProductAttr shopProductAttr = BeanCopyUtils.copy(dto, ShopProductAttr.class);
+        saveOrUpdate(shopProductAttr);
     }
 
     @Override
@@ -75,9 +75,9 @@ public class ShopProductAttrServiceImpl extends ServiceImpl<ShopProductAttrMappe
 
     @Override
     public ShopProductAttrVO detail(Object id) {
-        ShopProductAttr lbProductAttr = getById((Serializable) id);
-        CommonResponseEnum.INVALID_ID.assertNull(lbProductAttr);
-        return BeanCopyUtils.copy(lbProductAttr, ShopProductAttrVO.class);
+        ShopProductAttr shopProductAttr = getById((Serializable) id);
+        CommonResponseEnum.INVALID_ID.assertNull(shopProductAttr);
+        return BeanCopyUtils.copy(shopProductAttr, ShopProductAttrVO.class);
     }
 
     @Override

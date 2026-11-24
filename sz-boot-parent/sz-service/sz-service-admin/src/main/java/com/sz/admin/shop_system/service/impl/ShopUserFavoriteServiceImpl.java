@@ -24,7 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ShopUserFavoriteServiceImpl extends ServiceImpl<ShopUserFavoriteMapper, ShopUserFavorite> implements ShopUserFavoriteService {
 
-    private final ShopProductService lbProductService;
+    private final ShopProductService shopProductService;
 
     @Override
     public void create(Long userId, Long productId) {
@@ -88,7 +88,7 @@ public class ShopUserFavoriteServiceImpl extends ServiceImpl<ShopUserFavoriteMap
     }
 
     private ShopProduct resolveAvailableProduct(Long productId) {
-        ShopProduct product = lbProductService.getById(productId);
+        ShopProduct product = shopProductService.getById(productId);
         if (product != null
                 && Integer.valueOf(0).equals(product.getIsDel())
                 && Integer.valueOf(1).equals(product.getIsShow())) {

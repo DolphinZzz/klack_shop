@@ -11,11 +11,11 @@
     >
       <!-- 表格 header 按钮 -->
       <template #tableHeader="scope">
-        <el-button type="primary" v-auth="'lb.product.coupon.create'" :icon="CirclePlus" @click="openAddEdit('新增商品优惠券')">
+        <el-button type="primary" v-auth="'shop.product.coupon.create'" :icon="CirclePlus" @click="openAddEdit('新增商品优惠券')">
           新增
         </el-button>
         <el-button
-          v-auth="'lb.product.coupon.remove'"
+          v-auth="'shop.product.coupon.remove'"
           type="danger"
           :icon="Delete"
           plain
@@ -27,7 +27,7 @@
       </template>
       <template #operation="{ row }">
         <el-button
-          v-auth="'lb.product.coupon.update'"
+          v-auth="'shop.product.coupon.update'"
           type="primary"
           link
           :icon="EditPen"
@@ -35,7 +35,7 @@
         >
           编辑
         </el-button>
-        <el-button v-auth="'lb.product.coupon.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)">
+        <el-button v-auth="'shop.product.coupon.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)">
           删除
         </el-button>
       </template>

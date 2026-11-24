@@ -27,49 +27,49 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ServerCategoryController {
 
-    private final ShopCategoryService lbCategoryService;
+    private final ShopCategoryService shopCategoryService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.category.create")
+    @SaCheckPermission(value = "shop.category.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopCategoryDTO.Create dto) {
-        lbCategoryService.create(dto);
+        shopCategoryService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.category.update")
+    @SaCheckPermission(value = "shop.category.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopCategoryDTO.Update dto) {
-        lbCategoryService.update(dto);
+        shopCategoryService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.category.remove")
+    @SaCheckPermission(value = "shop.category.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbCategoryService.remove(dto);
+        shopCategoryService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.category.query_table")
+    @SaCheckPermission(value = "shop.category.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopCategoryVO>> list(ShopCategoryDTO.ListQuery dto) {
-        return ApiPageResult.success(lbCategoryService.page(dto));
+        return ApiPageResult.success(shopCategoryService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.category.query_table")
+    @SaCheckPermission(value = "shop.category.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopCategoryVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbCategoryService.detail(id));
+        return ApiResult.success(shopCategoryService.detail(id));
     }
 
     @Operation(summary = "查询所有分类数据")
     @GetMapping("/allCate")
     public ApiResult<List<ShopCategoryVO>> categoryChildrenList() {
-        return ApiResult.success(lbCategoryService.cateChildrenList());
+        return ApiResult.success(shopCategoryService.cateChildrenList());
     }
 }

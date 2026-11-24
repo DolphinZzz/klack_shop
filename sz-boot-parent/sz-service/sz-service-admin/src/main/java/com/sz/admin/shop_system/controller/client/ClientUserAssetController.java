@@ -31,42 +31,42 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ClientUserAssetController {
 
-    private final ShopUserBillService lbUserBillService;
-    private final ShopProductCouponUserService lbProductCouponUserService;
-    private final ShopUserIntegralBillService lbUserIntegralBillService;
+    private final ShopUserBillService shopUserBillService;
+    private final ShopProductCouponUserService shopProductCouponUserService;
+    private final ShopUserIntegralBillService shopUserIntegralBillService;
 
     @Operation(summary = "我的余额汇总-PC端")
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/balance/summary")
     public ApiResult<ShopFrontUserBalanceSummaryVO> balanceSummary() {
-        return ApiResult.success(lbUserBillService.frontSummary(StpUserUtil.getLoginIdAsLong()));
+        return ApiResult.success(shopUserBillService.frontSummary(StpUserUtil.getLoginIdAsLong()));
     }
 
     @Operation(summary = "我的余额账单-PC端")
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/balance/bill")
     public ApiResult<PageResult<ShopFrontUserBillVO>> balanceBill(ShopUserBillDTO.FrontList dto) {
-        return ApiPageResult.success(lbUserBillService.frontPage(StpUserUtil.getLoginIdAsLong(), dto));
+        return ApiPageResult.success(shopUserBillService.frontPage(StpUserUtil.getLoginIdAsLong(), dto));
     }
 
     @Operation(summary = "我的优惠券-PC端")
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/coupon/list")
     public ApiResult<PageResult<ShopCouponAndUserVO>> couponList(ShopProductCouponDTO.FrontUserList dto) {
-        return ApiPageResult.success(lbProductCouponUserService.frontPage(StpUserUtil.getLoginIdAsLong(), dto));
+        return ApiPageResult.success(shopProductCouponUserService.frontPage(StpUserUtil.getLoginIdAsLong(), dto));
     }
 
     @Operation(summary = "我的积分汇总-PC端")
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/integral/summary")
     public ApiResult<ShopFrontUserIntegralSummaryVO> integralSummary() {
-        return ApiResult.success(lbUserIntegralBillService.frontSummary(StpUserUtil.getLoginIdAsLong()));
+        return ApiResult.success(shopUserIntegralBillService.frontSummary(StpUserUtil.getLoginIdAsLong()));
     }
 
     @Operation(summary = "我的积分明细-PC端")
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/integral/bill")
     public ApiResult<PageResult<ShopFrontUserIntegralBillVO>> integralBill(ShopUserBillDTO.FrontIntegralList dto) {
-        return ApiPageResult.success(lbUserIntegralBillService.frontPage(StpUserUtil.getLoginIdAsLong(), dto));
+        return ApiPageResult.success(shopUserIntegralBillService.frontPage(StpUserUtil.getLoginIdAsLong(), dto));
     }
 }

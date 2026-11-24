@@ -39,7 +39,7 @@ public class ShopHomeNewsServiceImpl extends ServiceImpl<ShopHomeNewsMapper, Sho
     private static final int DEFAULT_FRONT_LIST_SIZE = 3;
     private static final int DEFAULT_HOT_LIST_SIZE = 5;
 
-    private final ShopHomeNewsCategoryService lbHomeNewsCategoryService;
+    private final ShopHomeNewsCategoryService shopHomeNewsCategoryService;
 
     @Override
     public void create(ShopHomeNewsDTO.Create dto) {
@@ -179,7 +179,7 @@ public class ShopHomeNewsServiceImpl extends ServiceImpl<ShopHomeNewsMapper, Sho
         if (categoryId == null || categoryId <= 0) {
             return StrUtil.blankToDefault(fallback, "资讯");
         }
-        ShopHomeNewsCategory category = lbHomeNewsCategoryService.getById(categoryId);
+        ShopHomeNewsCategory category = shopHomeNewsCategoryService.getById(categoryId);
         if (category == null || StrUtil.isBlank(category.getCategoryName())) {
             return StrUtil.blankToDefault(fallback, "资讯");
         }

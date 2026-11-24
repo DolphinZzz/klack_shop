@@ -25,19 +25,19 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "[客户端] 用户认证")
 @RestController
-@RequestMapping("/client/lb/auth")
+@RequestMapping("/client/shop/auth")
 @RequiredArgsConstructor
 @Slf4j
 public class ClientUserAuthController {
 
-    private final ShopUserService lbUserService;
+    private final ShopUserService shopUserService;
 
     @SaIgnore
     @DebounceIgnore
     @Operation(summary = "用户端注册")
     @PostMapping("/register")
     public ApiResult<Void> register(@Valid @RequestBody ShopUserDTO.Register dto) {
-        lbUserService.userRegister(dto);
+        shopUserService.userRegister(dto);
         return ApiResult.success();
     }
 
@@ -46,7 +46,7 @@ public class ClientUserAuthController {
     @Operation(summary = "用户端登录")
     @PostMapping("/login")
     public ApiResult<ShopUserLoginVO> login(@Valid @RequestBody ShopUserDTO.Login dto) {
-        ShopUserVO userVO = lbUserService.buildLoginUser(dto.getAccountOrPhone(), dto.getPassword());
+        ShopUserVO userVO = shopUserService.buildLoginUser(dto.getAccountOrPhone(), dto.getPassword());
 
         ShopUserLoginVO loginVO = new ShopUserLoginVO();
         loginVO.setUid(userVO.getUid());

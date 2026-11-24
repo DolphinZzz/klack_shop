@@ -11,11 +11,11 @@
     >
       <!-- 表格 header 按钮 -->
       <template #tableHeader="scope">
-        <el-button type="primary" v-auth="'lb.user.create'" :icon="CirclePlus" @click="openAddEdit('新增用户表')">
+        <el-button type="primary" v-auth="'shop.user.create'" :icon="CirclePlus" @click="openAddEdit('新增用户表')">
           新增
         </el-button>
         <el-button
-          v-auth="'lb.user.remove'"
+          v-auth="'shop.user.remove'"
           type="danger"
           :icon="Delete"
           plain
@@ -24,14 +24,14 @@
         >
           批量删除
         </el-button>
-        <el-button v-auth="'lb.user.import'" type="primary" :icon="Upload" plain @click="importData"> 导入 </el-button>
-        <el-button v-auth="'lb.user.export'" type="primary" :icon="Download" plain @click="downloadFile"> 导出 </el-button>
+        <el-button v-auth="'shop.user.import'" type="primary" :icon="Upload" plain @click="importData"> 导入 </el-button>
+        <el-button v-auth="'shop.user.export'" type="primary" :icon="Download" plain @click="downloadFile"> 导出 </el-button>
       </template>
       <template #operation="{ row }">
-        <el-button v-auth="'lb.user.update'" type="primary" link :icon="EditPen" @click="openAddEdit('编辑用户表', row, false)">
+        <el-button v-auth="'shop.user.update'" type="primary" link :icon="EditPen" @click="openAddEdit('编辑用户表', row, false)">
           编辑
         </el-button>
-        <el-button v-auth="'lb.user.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)"> 删除 </el-button>
+        <el-button v-auth="'shop.user.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)"> 删除 </el-button>
       </template>
     </ProTable>
     <ShopUserForm ref="shopUserRef" />
@@ -56,7 +56,7 @@ import { useHandleData } from '@/hooks/useHandleData';
 import ShopUserForm from '@/views/shop_system/shopUser/components/ShopUserForm.vue';
 import { useDictOptions } from '@/hooks/useDictOptions';
 import type { ColumnProps, ProTableInstance, SearchProps } from '@/components/ProTable/interface';
-import type { ShopUserQuery, ShopUserRow } from '@/api/types/shop_system/shopUser';
+import type { ShopUserQuery, ShopUserListRow } from '@/api/types/shop_system/shopUser';
 import ImportExcel from '@/components/ImportExcel/index.vue';
 import { downloadTemplate } from '@/api/modules/system/common';
 import { useDownload } from '@/hooks/useDownload';
@@ -69,22 +69,9 @@ defineOptions({
 useDict(['user_sex', 'biz_status', 'user_type']);
 const proTableRef = ref<ProTableInstance>();
 // 表格配置项
-const columns: ColumnProps<ShopUserRow>[] = [
+const columns: ColumnProps<ShopUserListRow>[] = [
   { type: 'selection', width: 80 },
   { prop: 'account', label: '用户账号' },
-  { prop: 'password', label: '用户密码' },
-  { prop: 'realName', label: '真实姓名' },
-  {
-    prop: 'sex',
-    label: '性别',
-    tag: true,
-    enum: useDictOptions('user_sex'),
-    fieldNames: {
-      label: 'codeName',
-      value: 'alias',
-      tagType: 'callbackShowStyle'
-    }
-  },
   { prop: 'nickname', label: '用户昵称' },
   { prop: 'phone', label: '手机号' },
   { prop: 'nowMoney', label: '用户余额' },
@@ -181,7 +168,7 @@ const openAddEdit = async (title: string, row: any = {}, isAdd = true) => {
   shopUserRef.value?.acceptParams(params);
 };
 // 删除信息
-const deleteInfo = async (params: ShopUserRow) => {
+const deleteInfo = async (params: ShopUserListRow) => {
   await useHandleData(removeShopUserApi, { ids: [params.uid] }, `删除【${params.uid}】用户表`);
   proTableRef.value?.getTableList();
 };

@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ShopProductCouponUserServiceImpl extends ServiceImpl<ShopProductCouponUserMapper, ShopProductCouponUser> implements ShopProductCouponUserService {
 
-    private final ShopProductCouponMapper lbProductCouponMapper;
+    private final ShopProductCouponMapper shopProductCouponMapper;
 
     @Override
     public PageResult<ShopCouponAndUserVO> frontPage(Long userId, ShopProductCouponDTO.FrontUserList dto) {
@@ -69,7 +69,7 @@ public class ShopProductCouponUserServiceImpl extends ServiceImpl<ShopProductCou
         if (couponIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return lbProductCouponMapper.selectByIds(couponIds).stream()
+        return shopProductCouponMapper.selectByIds(couponIds).stream()
                 .collect(Collectors.toMap(ShopProductCoupon::getId, item -> item, (a, b) -> a));
     }
 

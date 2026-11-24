@@ -1,7 +1,7 @@
 import http from '@/api';
 import { ADMIN_MODULE } from '@/api/helper/prefix';
 import type { IPage } from '@/api/types';
-import type { ShopUserQuery, ShopUserRow, ShopUserForm } from '@/api/types/shop_system/shopUser';
+import type { ShopUserQuery, ShopUserListRow, ShopUserRow, ShopUserForm } from '@/api/types/shop_system/shopUser';
 import type { UploadRawFile } from 'element-plus/es/components/upload/src/upload';
 import type { AxiosRequestConfig } from 'axios';
 
@@ -11,7 +11,7 @@ import type { AxiosRequestConfig } from 'axios';
  * @returns {*}
  */
 export const getShopUserListApi = (params: ShopUserQuery) => {
-  return http.get<IPage<ShopUserRow>>(ADMIN_MODULE + `/server/shopUser`, params);
+  return http.get<IPage<ShopUserListRow>>(ADMIN_MODULE + `/server/shopUser`, params);
 };
 
 /**

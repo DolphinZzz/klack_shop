@@ -73,8 +73,8 @@ public class ShopProductCouponServiceImpl extends ServiceImpl<ShopProductCouponM
         COUPON_SECKILL_SCRIPT.setResultType(Long.class);
     }
 
-    private final ShopProductCouponUserMapper lbProductCouponUserMapper;
-    private final ShopProductCouponUserService lbProductCouponUserService;
+    private final ShopProductCouponUserMapper shopProductCouponUserMapper;
+    private final ShopProductCouponUserService shopProductCouponUserService;
     private final StringRedisTemplate stringRedisTemplate;
     private final TransactionTemplate transactionTemplate;
 
@@ -119,7 +119,7 @@ public class ShopProductCouponServiceImpl extends ServiceImpl<ShopProductCouponM
                 int stock = coupon.getLastTotal() == null ? 0 : Math.max(coupon.getLastTotal(), 0);
                 stringRedisTemplate.opsForValue().setIfAbsent(buildStockKey(coupon.getId()), String.valueOf(stock));
 
-                List<Long> receivedUids = lbProductCouponUserMapper.selectUidsByCid(coupon.getId());
+                List<Long> receivedUids = shopProductCouponUserMapper.selectUidsByCid(coupon.getId());
                 if (receivedUids != null && !receivedUids.isEmpty()) {
                     String[] uidStrings = receivedUids.stream()
                             .filter(uid -> uid != null)
@@ -140,12 +140,12 @@ public class ShopProductCouponServiceImpl extends ServiceImpl<ShopProductCouponM
     public void create(ShopProductCouponDTO.Create dto) {
         validateCouponTimes(dto.getCouponStartTime(), dto.getCouponEndTime(), dto.getUseStartTime(), dto.getUseEndTime());
         validateMinMoney(dto.getMinMoney(), dto.getMoney());
-        ShopProductCoupon lbProductCoupon = buildCouponForCreate(dto);
-        save(lbProductCoupon);
+        ShopProductCoupon shopProductCoupon = buildCouponForCreate(dto);
+        save(shopProductCoupon);
 
-        if (isGrabbableCoupon(lbProductCoupon) && lbProductCoupon.getId() != null) {
-            int stock = lbProductCoupon.getLastTotal() == null ? 0 : Math.max(lbProductCoupon.getLastTotal(), 0);
-            stringRedisTemplate.opsForValue().set(buildStockKey(lbProductCoupon.getId()), String.valueOf(stock));
+        if (isGrabbableCoupon(shopProductCoupon) && shopProductCoupon.getId() != null) {
+            int stock = shopProductCoupon.getLastTotal() == null ? 0 : Math.max(shopProductCoupon.getLastTotal(), 0);
+            stringRedisTemplate.opsForValue().set(buildStockKey(shopProductCoupon.getId()), String.valueOf(stock));
         }
     }
 
@@ -156,15 +156,15 @@ public class ShopProductCouponServiceImpl extends ServiceImpl<ShopProductCouponM
         ShopProductCoupon existing = dto.getId() == null ? null : getById(dto.getId());
         CommonResponseEnum.INVALID_ID.assertTrue(existing == null);
 
-        ShopProductCoupon lbProductCoupon = BeanCopyUtils.copy(dto, ShopProductCoupon.class);
+        ShopProductCoupon shopProductCoupon = BeanCopyUtils.copy(dto, ShopProductCoupon.class);
         if (dto.getTotal() != null && existing.getTotal() != null && !dto.getTotal().equals(existing.getTotal())) {
             int baseLastTotal = existing.getLastTotal() == null ? existing.getTotal() : existing.getLastTotal();
             int nextLastTotal = Math.max(0, baseLastTotal + (dto.getTotal() - existing.getTotal()));
-            lbProductCoupon.setLastTotal(nextLastTotal);
+            shopProductCoupon.setLastTotal(nextLastTotal);
         }
-        saveOrUpdate(lbProductCoupon);
+        saveOrUpdate(shopProductCoupon);
 
-        syncCouponStockToRedisAfterUpdate(existing, lbProductCoupon);
+        syncCouponStockToRedisAfterUpdate(existing, shopProductCoupon);
     }
 
     @Override
@@ -262,9 +262,9 @@ public class ShopProductCouponServiceImpl extends ServiceImpl<ShopProductCouponM
 
     @Override
     public ShopProductCouponVO detail(Object id) {
-        ShopProductCoupon lbProductCoupon = getById((Serializable) id);
-        CommonResponseEnum.INVALID_ID.assertNull(lbProductCoupon);
-        return BeanCopyUtils.copy(lbProductCoupon, ShopProductCouponVO.class);
+        ShopProductCoupon shopProductCoupon = getById((Serializable) id);
+        CommonResponseEnum.INVALID_ID.assertNull(shopProductCoupon);
+        return BeanCopyUtils.copy(shopProductCoupon, ShopProductCouponVO.class);
     }
 
     // ==================== 异步队列消费与数据库落库 ====================
@@ -302,7 +302,7 @@ public class ShopProductCouponServiceImpl extends ServiceImpl<ShopProductCouponM
         Long userId = task.getUserId();
 
         // 1. 数据库侧一人一单幂等兜底
-        long receivedCount = lbProductCouponUserMapper.countByCidAndUid(couponId, userId);
+        long receivedCount = shopProductCouponUserMapper.countByCidAndUid(couponId, userId);
         if (receivedCount > 0) {
             log.warn("异步下单检测到重复记录，跳过落库。orderId={}, couponId={}, userId={}",
                     task.getOrderId(), couponId, userId);
@@ -324,7 +324,7 @@ public class ShopProductCouponServiceImpl extends ServiceImpl<ShopProductCouponM
 
         // 4. 写入用户领券记录表
         ShopProductCouponUser couponUser = buildCouponUserRecord(coupon, userId);
-        boolean saveSuccess = lbProductCouponUserService.save(couponUser);
+        boolean saveSuccess = shopProductCouponUserService.save(couponUser);
         if (!saveSuccess) {
             throw new IllegalStateException("写入用户优惠券记录失败，couponId=" + couponId + ", userId=" + userId);
         }
@@ -402,9 +402,9 @@ public class ShopProductCouponServiceImpl extends ServiceImpl<ShopProductCouponM
     }
 
     private ShopProductCoupon buildCouponForCreate(ShopProductCouponDTO.Create dto) {
-        ShopProductCoupon lbProductCoupon = BeanCopyUtils.copy(dto, ShopProductCoupon.class);
-        lbProductCoupon.setLastTotal(dto.getTotal());
-        return lbProductCoupon;
+        ShopProductCoupon shopProductCoupon = BeanCopyUtils.copy(dto, ShopProductCoupon.class);
+        shopProductCoupon.setLastTotal(dto.getTotal());
+        return shopProductCoupon;
     }
 
     private ShopProductCouponUser buildCouponUserRecord(ShopProductCoupon coupon, long userId) {

@@ -24,21 +24,21 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class ClientUserController {
 
-    private final ShopUserService lbUserService;
+    private final ShopUserService shopUserService;
     private final SysFileService sysFileService;
 
     @Operation(summary = "查询用户端个人资料")
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/profile")
     public ApiResult<ShopFrontUserProfileVO> profile() {
-        return ApiResult.success(lbUserService.getFrontProfile(StpUserUtil.getLoginIdAsLong()));
+        return ApiResult.success(shopUserService.getFrontProfile(StpUserUtil.getLoginIdAsLong()));
     }
 
     @Operation(summary = "修改用户端个人资料")
     @SaCheckLogin(type = "shop_user")
     @PutMapping("/profile")
     public ApiResult<Void> updateProfile(@RequestBody ShopUserDTO.FrontProfileUpdate dto) {
-        lbUserService.updateFrontProfile(StpUserUtil.getLoginIdAsLong(), dto);
+        shopUserService.updateFrontProfile(StpUserUtil.getLoginIdAsLong(), dto);
         return ApiResult.success();
     }
 
@@ -55,7 +55,7 @@ public class ClientUserController {
     @SaCheckLogin(type = "shop_user")
     @PutMapping("/password")
     public ApiResult<Void> updatePassword(@RequestBody ShopUserDTO.FrontPassword dto) {
-        lbUserService.updateFrontPassword(StpUserUtil.getLoginIdAsLong(), dto);
+        shopUserService.updateFrontPassword(StpUserUtil.getLoginIdAsLong(), dto);
         return ApiResult.success();
     }
 }

@@ -25,43 +25,43 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerProductAttrController {
 
-    private final ShopProductAttrService lbProductAttrService;
+    private final ShopProductAttrService shopProductAttrService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.product.attr.create")
+    @SaCheckPermission(value = "shop.product.attr.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopProductAttrDTO.Create dto) {
-        lbProductAttrService.create(dto);
+        shopProductAttrService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.product.attr.update")
+    @SaCheckPermission(value = "shop.product.attr.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopProductAttrDTO.Update dto) {
-        lbProductAttrService.update(dto);
+        shopProductAttrService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.product.attr.remove")
+    @SaCheckPermission(value = "shop.product.attr.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbProductAttrService.remove(dto);
+        shopProductAttrService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.product.attr.query_table")
+    @SaCheckPermission(value = "shop.product.attr.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopProductAttrVO>> list(ShopProductAttrDTO.ListQuery dto) {
-        return ApiPageResult.success(lbProductAttrService.page(dto));
+        return ApiPageResult.success(shopProductAttrService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.product.attr.query_table")
+    @SaCheckPermission(value = "shop.product.attr.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopProductAttrVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbProductAttrService.detail(id));
+        return ApiResult.success(shopProductAttrService.detail(id));
     }
 }

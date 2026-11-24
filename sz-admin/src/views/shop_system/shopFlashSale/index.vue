@@ -46,7 +46,7 @@
       </template>
 
       <template #operation="{ row }">
-        <el-button v-auth="'lb.flash.sale.update'" type="primary" link :icon="EditPen" @click="openEdit(row)">编辑营销</el-button>
+        <el-button v-auth="'shop.flash.sale.update'" type="primary" link :icon="EditPen" @click="openEdit(row)">编辑营销</el-button>
       </template>
     </ProTable>
 

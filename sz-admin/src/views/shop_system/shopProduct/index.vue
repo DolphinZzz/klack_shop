@@ -11,9 +11,9 @@
     >
       <!-- 表格 header 按钮 -->
       <template #tableHeader="scope">
-        <el-button type="primary" v-auth="'lb.product.create'" :icon="CirclePlus" @click="openCreateDialog"> 新增 </el-button>
+        <el-button type="primary" v-auth="'shop.product.create'" :icon="CirclePlus" @click="openCreateDialog"> 新增 </el-button>
         <el-button
-          v-auth="'lb.product.remove'"
+          v-auth="'shop.product.remove'"
           type="danger"
           :icon="Delete"
           plain
@@ -22,7 +22,7 @@
         >
           批量删除
         </el-button>
-        <el-button v-auth="'lb.product.export'" type="primary" :icon="Download" plain @click="downloadFile"> 导出 </el-button>
+        <el-button v-auth="'shop.product.export'" type="primary" :icon="Download" plain @click="downloadFile"> 导出 </el-button>
       </template>
       <template #image="{ row }">
         <el-image
@@ -38,9 +38,9 @@
       <template #operation="{ row }">
         <el-button link :icon="EditPen" type="primary" @click="openEdit(row)">编辑</el-button>
 
-        <el-button v-auth="'lb.product.update'" type="primary" link :icon="List" @click="openDetail(row)"> 详情 </el-button>
+        <el-button v-auth="'shop.product.update'" type="primary" link :icon="List" @click="openDetail(row)"> 详情 </el-button>
 
-        <el-button v-auth="'lb.product.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)"> 删除 </el-button>
+        <el-button v-auth="'shop.product.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)"> 删除 </el-button>
       </template>
     </ProTable>
     <ShopProductCreateDialog ref="createDialogRef" @success="proTableRef?.getTableList()" />

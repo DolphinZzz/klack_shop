@@ -11,11 +11,11 @@
     >
       <!-- 表格 header 按钮 -->
       <template #tableHeader="scope">
-        <el-button type="primary" v-auth="'lb.user.recharge.create'" :icon="CirclePlus" @click="openAddEdit('新增用户充值表')">
+        <el-button type="primary" v-auth="'shop.user.recharge.create'" :icon="CirclePlus" @click="openAddEdit('新增用户充值表')">
           新增
         </el-button>
         <el-button
-          v-auth="'lb.user.recharge.remove'"
+          v-auth="'shop.user.recharge.remove'"
           type="danger"
           :icon="Delete"
           plain
@@ -24,13 +24,13 @@
         >
           批量删除
         </el-button>
-        <el-button v-auth="'lb.user.recharge.export'" type="primary" :icon="Download" plain @click="downloadFile">
+        <el-button v-auth="'shop.user.recharge.export'" type="primary" :icon="Download" plain @click="downloadFile">
           导出
         </el-button>
       </template>
       <template #operation="{ row }">
         <el-button
-          v-auth="'lb.user.recharge.update'"
+          v-auth="'shop.user.recharge.update'"
           type="primary"
           link
           :icon="EditPen"
@@ -38,7 +38,7 @@
         >
           编辑
         </el-button>
-        <el-button v-auth="'lb.user.recharge.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)">
+        <el-button v-auth="'shop.user.recharge.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)">
           删除
         </el-button>
       </template>

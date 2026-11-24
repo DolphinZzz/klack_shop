@@ -26,43 +26,43 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerProductCouponController {
 
-    private final ShopProductCouponService lbProductCouponService;
+    private final ShopProductCouponService shopProductCouponService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.product.coupon.create")
+    @SaCheckPermission(value = "shop.product.coupon.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopProductCouponDTO.Create dto) {
-        lbProductCouponService.create(dto);
+        shopProductCouponService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.product.coupon.update")
+    @SaCheckPermission(value = "shop.product.coupon.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopProductCouponDTO.Update dto) {
-        lbProductCouponService.update(dto);
+        shopProductCouponService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.product.coupon.remove")
+    @SaCheckPermission(value = "shop.product.coupon.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbProductCouponService.remove(dto);
+        shopProductCouponService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.product.coupon.query_table")
+    @SaCheckPermission(value = "shop.product.coupon.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopCouponAndProductsVO>> list(ShopProductCouponDTO.ListQuery dto) {
-        return ApiPageResult.success(lbProductCouponService.page(dto));
+        return ApiPageResult.success(shopProductCouponService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.product.coupon.query_table")
+    @SaCheckPermission(value = "shop.product.coupon.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopProductCouponVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbProductCouponService.detail(id));
+        return ApiResult.success(shopProductCouponService.detail(id));
     }
 }

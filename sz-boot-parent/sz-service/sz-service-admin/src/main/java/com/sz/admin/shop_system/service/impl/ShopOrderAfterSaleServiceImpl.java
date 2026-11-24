@@ -51,12 +51,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ShopOrderAfterSaleServiceImpl extends ServiceImpl<ShopOrderAfterSaleMapper, ShopOrderAfterSale> implements ShopOrderAfterSaleService {
 
-    private final ShopOrderAfterSaleMapper lbOrderAfterSaleMapper;
-    private final ShopOrderMapper lbOrderMapper;
-    private final ShopOrderStatusService lbOrderStatusService;
-    private final ShopUserService lbUserService;
-    private final ShopUserBillService lbUserBillService;
-    private final ShopUserIntegralBillService lbUserIntegralBillService;
+    private final ShopOrderAfterSaleMapper shopOrderAfterSaleMapper;
+    private final ShopOrderMapper shopOrderMapper;
+    private final ShopOrderStatusService shopOrderStatusService;
+    private final ShopUserService shopUserService;
+    private final ShopUserBillService shopUserBillService;
+    private final ShopUserIntegralBillService shopUserIntegralBillService;
 
     // ==================== 业务编排层 ====================
 
@@ -83,7 +83,7 @@ public class ShopOrderAfterSaleServiceImpl extends ServiceImpl<ShopOrderAfterSal
         PageResult<ShopFrontOrderAfterSaleVO> pageResult;
         try {
             PageUtils.toPage(query);
-            List<ShopFrontOrderAfterSaleVO> rows = lbOrderAfterSaleMapper.selectFrontPageList(userId, query);
+            List<ShopFrontOrderAfterSaleVO> rows = shopOrderAfterSaleMapper.selectFrontPageList(userId, query);
             pageResult = PageUtils.getPageResult(rows);
         } finally {
             PageHelper.clearPage();
@@ -129,7 +129,7 @@ public class ShopOrderAfterSaleServiceImpl extends ServiceImpl<ShopOrderAfterSal
         PageResult<ShopOrderAfterSaleVO> pageResult;
         try {
             PageUtils.toPage(query);
-            List<ShopOrderAfterSaleVO> rows = lbOrderAfterSaleMapper.selectAdminPageList(query);
+            List<ShopOrderAfterSaleVO> rows = shopOrderAfterSaleMapper.selectAdminPageList(query);
             pageResult = PageUtils.getPageResult(rows);
         } finally {
             PageHelper.clearPage();
@@ -209,7 +209,7 @@ public class ShopOrderAfterSaleServiceImpl extends ServiceImpl<ShopOrderAfterSal
         CommonResponseEnum.INVALID.message("当前订单暂不支持申请售后")
                 .assertTrue(order.getPaid() == null || order.getPaid() != 1 || order.getStatus() == null || (order.getStatus() != 2 && order.getStatus() != 3));
 
-        ShopOrderAfterSale exists = lbOrderAfterSaleMapper.selectActiveByOrderId(order.getId());
+        ShopOrderAfterSale exists = shopOrderAfterSaleMapper.selectActiveByOrderId(order.getId());
         CommonResponseEnum.INVALID.message("该订单已申请过售后，请勿重复提交").assertTrue(exists != null);
     }
 
@@ -432,7 +432,7 @@ public class ShopOrderAfterSaleServiceImpl extends ServiceImpl<ShopOrderAfterSal
             return Collections.emptyList();
         }
 
-        List<ShopProductCartAndSkuVO> cartRows = lbOrderMapper.selectOrderCartWithSku(cartIds, null, null);
+        List<ShopProductCartAndSkuVO> cartRows = shopOrderMapper.selectOrderCartWithSku(cartIds, null, null);
         Map<Long, Integer> orderMap = new HashMap<>();
         for (int i = 0; i < cartIds.size(); i++) {
             orderMap.put(cartIds.get(i), i);
@@ -455,26 +455,26 @@ public class ShopOrderAfterSaleServiceImpl extends ServiceImpl<ShopOrderAfterSal
     // ==================== 数据读取与持久化写入层 ====================
 
     private ShopOrder requireFrontOrder(String orderNo, Long userId) {
-        ShopOrder order = lbOrderMapper.selectActiveByOrderNoAndUid(orderNo, userId);
+        ShopOrder order = shopOrderMapper.selectActiveByOrderNoAndUid(orderNo, userId);
         CommonResponseEnum.INVALID.message("订单不存在").assertNull(order);
         return order;
     }
 
     private ShopOrderAfterSale requireFrontAfterSale(Long id, Long userId) {
-        ShopOrderAfterSale afterSale = lbOrderAfterSaleMapper.selectActiveByIdAndUid(id, userId);
+        ShopOrderAfterSale afterSale = shopOrderAfterSaleMapper.selectActiveByIdAndUid(id, userId);
         CommonResponseEnum.INVALID.message("售后单不存在").assertNull(afterSale);
         return afterSale;
     }
 
     private ShopOrderAfterSale requireAfterSale(Long id) {
-        ShopOrderAfterSale afterSale = lbOrderAfterSaleMapper.selectActiveById(id);
+        ShopOrderAfterSale afterSale = shopOrderAfterSaleMapper.selectActiveById(id);
         CommonResponseEnum.INVALID.message("售后单不存在").assertNull(afterSale);
         return afterSale;
     }
 
     private ShopOrder loadOrder(Long orderId) {
         CommonResponseEnum.INVALID_ID.assertNull(orderId);
-        ShopOrder order = lbOrderMapper.selectOneById(orderId);
+        ShopOrder order = shopOrderMapper.selectOneById(orderId);
         CommonResponseEnum.INVALID.message("订单不存在").assertNull(order);
         return order;
     }
@@ -530,7 +530,7 @@ public class ShopOrderAfterSaleServiceImpl extends ServiceImpl<ShopOrderAfterSal
     }
 
     private void persistRefundAssets(ShopOrder order, ShopOrderAfterSale afterSale, BigDecimal refundAmount) {
-        ShopUser user = lbUserService.getById(order.getUid());
+        ShopUser user = shopUserService.getById(order.getUid());
         CommonResponseEnum.INVALID.message("用户不存在").assertNull(user);
 
         BigDecimal nowMoney = user.getNowMoney() == null ? BigDecimal.ZERO : user.getNowMoney();
@@ -545,18 +545,18 @@ public class ShopOrderAfterSaleServiceImpl extends ServiceImpl<ShopOrderAfterSal
         if (useIntegral > 0) {
             updateUser.setIntegral(newIntegral);
         }
-        boolean updated = lbUserService.updateById(updateUser);
+        boolean updated = shopUserService.updateById(updateUser);
         CommonResponseEnum.INVALID.message("退回用户资产失败，请稍后重试").assertTrue(!updated);
 
         if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
             ShopUserBill userBill = buildRefundBill(user.getUid(), afterSale.getServiceNo(), refundAmount, newMoney);
-            boolean saved = lbUserBillService.save(userBill);
+            boolean saved = shopUserBillService.save(userBill);
             CommonResponseEnum.INVALID.message("写入退款账单失败，请稍后重试").assertTrue(!saved);
         }
 
         if (useIntegral > 0) {
             ShopUserIntegralBill integralBill = buildRefundIntegralBill(user.getUid(), afterSale.getServiceNo(), useIntegral, newIntegral);
-            boolean saved = lbUserIntegralBillService.save(integralBill);
+            boolean saved = shopUserIntegralBillService.save(integralBill);
             CommonResponseEnum.INVALID.message("写入积分退回流水失败，请稍后重试").assertTrue(!saved);
         }
     }
@@ -577,7 +577,7 @@ public class ShopOrderAfterSaleServiceImpl extends ServiceImpl<ShopOrderAfterSal
         if (refundReason != null) {
             update.setRefundReason(refundReason);
         }
-        lbOrderMapper.update(update);
+        shopOrderMapper.update(update);
     }
 
     private void saveOrderStatusLog(Long orderId, String changeType, String changeMessage) {
@@ -588,7 +588,7 @@ public class ShopOrderAfterSaleServiceImpl extends ServiceImpl<ShopOrderAfterSal
         orderStatus.setOid(orderId);
         orderStatus.setChangeType(changeType);
         orderStatus.setChangeMessage(changeMessage);
-        lbOrderStatusService.save(orderStatus);
+        shopOrderStatusService.save(orderStatus);
     }
 
     // ==================== 辅助工具方法 ====================

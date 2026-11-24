@@ -23,19 +23,19 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientFlashSaleController {
 
-    private final ShopFlashSaleService lbFlashSaleService;
+    private final ShopFlashSaleService shopFlashSaleService;
 
     @SaIgnore
     @Operation(summary = "前台秒杀列表")
     @GetMapping("/list")
     public ApiResult<List<ShopFlashSaleFrontVO>> frontList(@RequestParam(value = "size", defaultValue = "4") Integer size) {
-        return ApiResult.success(lbFlashSaleService.activeFrontList(size));
+        return ApiResult.success(shopFlashSaleService.activeFrontList(size));
     }
 
     @SaIgnore
     @Operation(summary = "前台秒杀详情")
     @GetMapping("/detail")
     public ApiResult<ShopFlashSaleFrontVO> frontDetail(@RequestParam("productId") Long productId) {
-        return ApiResult.success(lbFlashSaleService.frontDetail(productId));
+        return ApiResult.success(shopFlashSaleService.frontDetail(productId));
     }
 }

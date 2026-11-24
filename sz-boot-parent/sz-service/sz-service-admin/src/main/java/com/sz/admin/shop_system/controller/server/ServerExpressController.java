@@ -25,43 +25,43 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerExpressController {
 
-    private final ShopExpressService lbExpressService;
+    private final ShopExpressService shopExpressService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.express.create")
+    @SaCheckPermission(value = "shop.express.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopExpressDTO.Create dto) {
-        lbExpressService.create(dto);
+        shopExpressService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.express.update")
+    @SaCheckPermission(value = "shop.express.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopExpressDTO.Update dto) {
-        lbExpressService.update(dto);
+        shopExpressService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.express.remove")
+    @SaCheckPermission(value = "shop.express.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbExpressService.remove(dto);
+        shopExpressService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.express.query_table")
+    @SaCheckPermission(value = "shop.express.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopExpressVO>> list(ShopExpressDTO.ListQuery dto) {
-        return ApiPageResult.success(lbExpressService.page(dto));
+        return ApiPageResult.success(shopExpressService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.express.query_table")
+    @SaCheckPermission(value = "shop.express.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopExpressVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbExpressService.detail(id));
+        return ApiResult.success(shopExpressService.detail(id));
     }
 }

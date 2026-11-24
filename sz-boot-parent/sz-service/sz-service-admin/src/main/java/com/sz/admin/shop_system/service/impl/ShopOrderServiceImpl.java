@@ -110,31 +110,31 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     private static final long ORDER_INTEGRAL_DEDUCTION_RATIO = 10000L;
     private static final int ORDER_PAID_SUCCESS = 1;
     private static final int ORDER_PAID_FAILED = 2;
-    private static final String ORDER_PAYMENT_TTL_KEY_PREFIX = "lb:order:payment:ttl:";
-    private static final String FLASH_RESERVE_KEY_PREFIX = "lb:flash:reserve:";
+    private static final String ORDER_PAYMENT_TTL_KEY_PREFIX = "shop:order:payment:ttl:";
+    private static final String FLASH_RESERVE_KEY_PREFIX = "shop:flash:reserve:";
     private static final int ORDER_TYPE_NORMAL = 0;
     private static final int ORDER_TYPE_FLASH = 1;
 
-    private final ShopUserService lbUserService;
-    private final ShopProductCartMapper lbProductCartMapper;
-    private final ShopOrderStatusService lbOrderStatusService;
-    private final ShopProductAttrValueService lbProductAttrValueService;
-    private final ShopProductService lbProductService;
-    private final ShopProductMapper lbProductMapper;
-    private final ShopProductAttrValueMapper lbProductAttrValueMapper;
-    private final ShopUserBillService lbUserBillService;
-    private final ShopUserIntegralBillService lbUserIntegralBillService;
-    private final ShopExpressService lbExpressService;
-    private final ShopExpressInfoMapper lbExpressInfoMapper;
-    private final ShopExpressTemplateMapper lbExpressTemplateMapper;
-    private final ShopUserAddressMapper lbUserAddressMapper;
-    private final ShopProductCouponMapper lbProductCouponMapper;
-    private final ShopProductCouponUserMapper lbProductCouponUserMapper;
-    private final ShopProductCommentMapper lbProductCommentMapper;
-    private final ShopOrderAfterSaleMapper lbOrderAfterSaleMapper;
+    private final ShopUserService shopUserService;
+    private final ShopProductCartMapper shopProductCartMapper;
+    private final ShopOrderStatusService shopOrderStatusService;
+    private final ShopProductAttrValueService shopProductAttrValueService;
+    private final ShopProductService shopProductService;
+    private final ShopProductMapper shopProductMapper;
+    private final ShopProductAttrValueMapper shopProductAttrValueMapper;
+    private final ShopUserBillService shopUserBillService;
+    private final ShopUserIntegralBillService shopUserIntegralBillService;
+    private final ShopExpressService shopExpressService;
+    private final ShopExpressInfoMapper shopExpressInfoMapper;
+    private final ShopExpressTemplateMapper shopExpressTemplateMapper;
+    private final ShopUserAddressMapper shopUserAddressMapper;
+    private final ShopProductCouponMapper shopProductCouponMapper;
+    private final ShopProductCouponUserMapper shopProductCouponUserMapper;
+    private final ShopProductCommentMapper shopProductCommentMapper;
+    private final ShopOrderAfterSaleMapper shopOrderAfterSaleMapper;
     private final RedisTemplate<Object, Object> redisTemplate;
-    private final ShopPaymentProperties lbPaymentProperties;
-    private final ShopFlashSaleService lbFlashSaleService;
+    private final ShopPaymentProperties shopPaymentProperties;
+    private final ShopFlashSaleService shopFlashSaleService;
 
     // ==================== 一、业务编排层 ====================
 
@@ -142,14 +142,14 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     @Transactional(rollbackFor = Exception.class)
     public ShopPreOrderVO create(ShopOrderDTO.PreOrder dto) {
         long userId = StpUserUtil.getLoginIdAsLong();
-        ShopUser lbUser = lbUserService.getById(userId);
+        ShopUser shopUser = shopUserService.getById(userId);
         List<Integer> distinctCartIds = validateAndExtractCartIds(dto == null ? null : dto.getShoppingCartIds());
 
         List<ShopProductCartAndSkuVO> cartRows = loadAndVerifyActiveCarts(userId, distinctCartIds);
         CartSummary summary = summarizeCartItems(cartRows);
 
         String orderNo = SerialNumberGenerator.generateOrderNo();
-        ShopOrder order = buildNormalPreOrderEntity(orderNo, userId, lbUser, distinctCartIds, summary);
+        ShopOrder order = buildNormalPreOrderEntity(orderNo, userId, shopUser, distinctCartIds, summary);
         persistNormalPreOrder(order, userId, distinctCartIds);
 
         return assembleCreatedPreOrderVO(orderNo);
@@ -166,17 +166,17 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         int cartNum = dto.getCartNum() == null || dto.getCartNum() <= 0 ? 1 : dto.getCartNum();
         LocalDateTime now = LocalDateTime.now();
 
-        ShopFlashSale flashSale = lbFlashSaleService.getAvailableByProductId(dto.getProductId(), now);
+        ShopFlashSale flashSale = shopFlashSaleService.getAvailableByProductId(dto.getProductId(), now);
         CommonResponseEnum.INVALID.message("秒杀活动不存在或未开始").assertNull(flashSale);
 
         int limitPerUser = flashSale.getLimitPerUser() == null || flashSale.getLimitPerUser() <= 0 ? 1 : flashSale.getLimitPerUser();
         CommonResponseEnum.INVALID.message("超过限购数量").assertTrue(cartNum > limitPerUser);
 
-        ShopProduct product = lbProductService.getById(dto.getProductId());
+        ShopProduct product = shopProductService.getById(dto.getProductId());
         CommonResponseEnum.INVALID.message("商品不存在").assertNull(product);
         CommonResponseEnum.INVALID.message("商品未上架").assertTrue(product.getIsShow() == null || product.getIsShow() != 1);
 
-        ShopProductAttrValue sku = lbProductAttrValueService.getById(dto.getSkuId());
+        ShopProductAttrValue sku = shopProductAttrValueService.getById(dto.getSkuId());
         CommonResponseEnum.INVALID.message("商品规格不存在").assertNull(sku);
         CommonResponseEnum.INVALID.message("商品规格与商品不匹配")
                 .assertTrue(sku.getProductId() == null || !dto.getProductId().equals(sku.getProductId()));
@@ -193,19 +193,19 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
 
     @Override
     public void update(ShopOrderDTO.Update dto) {
-        ShopOrder lbOrder = getById(dto.getId());
-        CommonResponseEnum.INVALID_ID.assertNull(lbOrder);
+        ShopOrder shopOrder = getById(dto.getId());
+        CommonResponseEnum.INVALID_ID.assertNull(shopOrder);
 
         Integer newStatus = dto.getStatus();
-        Integer currentStatus = lbOrder.getStatus() == null ? ShopOrderStatusEnum.CREATED.getCode() : lbOrder.getStatus();
+        Integer currentStatus = shopOrder.getStatus() == null ? ShopOrderStatusEnum.CREATED.getCode() : shopOrder.getStatus();
 
         if (newStatus != null && !newStatus.equals(currentStatus)) {
             CommonResponseEnum.INVALID.message("订单状态无效").assertNull(ShopOrderStatusEnum.fromCode(newStatus));
             CommonResponseEnum.INVALID.message("订单状态流转无效")
                     .assertTrue(!ShopOrderStatusEnum.canTransfer(currentStatus, newStatus));
-            lbOrder.setStatus(newStatus);
-            saveOrUpdate(lbOrder);
-            addOrderStatusLog(lbOrder, newStatus);
+            shopOrder.setStatus(newStatus);
+            saveOrUpdate(shopOrder);
+            addOrderStatusLog(shopOrder, newStatus);
         }
     }
 
@@ -219,14 +219,14 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     public ShopPreOrderVO queryDetail(String orderNo) {
         long userId = StpUserUtil.getLoginIdAsLong();
 
-        ShopOrder lbOrder = requireFrontOrder(orderNo, userId);
-        long flashRemainingSeconds = refreshFlashReserveState(lbOrder);
-        assertOrderPending(lbOrder);
+        ShopOrder shopOrder = requireFrontOrder(orderNo, userId);
+        long flashRemainingSeconds = refreshFlashReserveState(shopOrder);
+        assertOrderPending(shopOrder);
 
-        ShopUserAddress defaultAddress = lbUserAddressMapper.selectDefaultByUid(userId);
+        ShopUserAddress defaultAddress = shopUserAddressMapper.selectDefaultByUid(userId);
         Long defaultAddressId = defaultAddress == null ? null : defaultAddress.getId();
 
-        List<Long> distinctCartIds = parseOrderCartIds(lbOrder.getCartIds());
+        List<Long> distinctCartIds = parseOrderCartIds(shopOrder.getCartIds());
         List<ShopProductCartAndSkuVO> cartRows = loadAndSortPreOrderCartRows(userId, distinctCartIds);
         CartSummary summary = summarizeCartItems(cartRows);
 
@@ -235,7 +235,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         List<ShopCouponAndUserVO> couponVos = assembleAvailableCoupons(userId, summary, expiredUserCouponIds);
         persistExpiredUserCoupons(expiredUserCouponIds, LocalDateTime.now());
 
-        return assemblePreOrderDetailVO(lbOrder, defaultAddressId, summary, cartRows, couponVos, maxUseIntegral, flashRemainingSeconds);
+        return assemblePreOrderDetailVO(shopOrder, defaultAddressId, summary, cartRows, couponVos, maxUseIntegral, flashRemainingSeconds);
     }
 
     @Override
@@ -323,9 +323,9 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         long userId = StpUserUtil.getLoginIdAsLong();
         ShopOrder order = requireFrontOrder(orderNo, userId);
         long remainingSeconds = ensureOrderPaymentRemainingSeconds(order);
-        ShopUser lbUser = lbUserService.getById(userId);
+        ShopUser shopUser = shopUserService.getById(userId);
 
-        return assemblePaymentInfoVO(order, lbUser, remainingSeconds);
+        return assemblePaymentInfoVO(order, shopUser, remainingSeconds);
     }
 
     @Override
@@ -348,13 +348,13 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         BigDecimal payPrice = resolvePayPrice(order);
         CommonResponseEnum.INVALID.message("订单支付金额无效").assertTrue(payPrice.compareTo(BigDecimal.ZERO) < 0);
 
-        ShopUser lbUser = lbUserService.getById(userId);
-        CommonResponseEnum.INVALID.message("用户不存在").assertNull(lbUser);
-        BigDecimal userMoney = lbUser.getNowMoney() == null ? BigDecimal.ZERO : lbUser.getNowMoney();
+        ShopUser shopUser = shopUserService.getById(userId);
+        CommonResponseEnum.INVALID.message("用户不存在").assertNull(shopUser);
+        BigDecimal userMoney = shopUser.getNowMoney() == null ? BigDecimal.ZERO : shopUser.getNowMoney();
         CommonResponseEnum.INVALID.message("余额不足").assertTrue(userMoney.compareTo(payPrice) < 0);
 
         int useIntegral = order.getUseIntegral() == null ? 0 : Math.max(order.getUseIntegral(), 0);
-        int currentIntegral = lbUser.getIntegral() == null ? 0 : lbUser.getIntegral();
+        int currentIntegral = shopUser.getIntegral() == null ? 0 : shopUser.getIntegral();
         CommonResponseEnum.INVALID.message("积分不足，请刷新订单后重试").assertTrue(currentIntegral < useIntegral);
 
         BigDecimal remainMoney = userMoney.subtract(payPrice);
@@ -476,9 +476,9 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
 
     @Override
     public ShopOrderVO detail(Object id) {
-        ShopOrder lbOrder = getById((Serializable) id);
-        CommonResponseEnum.INVALID_ID.assertNull(lbOrder);
-        return BeanCopyUtils.copy(lbOrder, ShopOrderVO.class);
+        ShopOrder shopOrder = getById((Serializable) id);
+        CommonResponseEnum.INVALID_ID.assertNull(shopOrder);
+        return BeanCopyUtils.copy(shopOrder, ShopOrderVO.class);
     }
 
     @Override
@@ -510,7 +510,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         CommonResponseEnum.INVALID.message("当前订单状态不允许发货")
                 .assertTrue(order.getStatus() == null || order.getStatus() != 0);
 
-        ShopExpressTemplate expressTemplate = lbExpressTemplateMapper.selectActiveById(dto.getExpressTemplateId());
+        ShopExpressTemplate expressTemplate = shopExpressTemplateMapper.selectActiveById(dto.getExpressTemplateId());
         CommonResponseEnum.INVALID.message("快递模板不存在").assertNull(expressTemplate);
         CommonResponseEnum.INVALID.message("快递模板未绑定快递公司")
                 .assertNull(expressTemplate.getExpressId());
@@ -527,12 +527,12 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
                                                           ShopFlashSaleDTO.Reserve dto,
                                                           int cartNum,
                                                           ShopFlashSale flashSale) {
-        ShopProductAttrValue latestSku = lbProductAttrValueService.getById(dto.getSkuId());
+        ShopProductAttrValue latestSku = shopProductAttrValueService.getById(dto.getSkuId());
         CommonResponseEnum.INVALID.message("商品规格不存在").assertNull(latestSku);
         int skuStock = latestSku.getStock() == null ? 0 : latestSku.getStock();
         CommonResponseEnum.INVALID.message("秒杀商品库存不足").assertTrue(skuStock < cartNum);
 
-        ShopProduct latestProduct = lbProductService.getById(dto.getProductId());
+        ShopProduct latestProduct = shopProductService.getById(dto.getProductId());
         CommonResponseEnum.INVALID.message("商品不存在").assertNull(latestProduct);
         int aggregatedStock = resolveAggregatedProductStock(dto.getProductId(), latestProduct);
         CommonResponseEnum.INVALID.message("秒杀商品库存不足").assertTrue(aggregatedStock < cartNum);
@@ -607,15 +607,15 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
 
     private ShopOrder buildNormalPreOrderEntity(String orderNo,
                                               long userId,
-                                              ShopUser lbUser,
+                                              ShopUser shopUser,
                                               List<Integer> distinctCartIds,
                                               CartSummary summary) {
         String cartToStr = distinctCartIds.stream().map(String::valueOf).collect(Collectors.joining(","));
         return new ShopOrder()
                 .setOrderId(orderNo)
                 .setUid(userId)
-                .setRealName(lbUser == null ? null : lbUser.getRealName())
-                .setUserPhone(lbUser == null ? null : lbUser.getPhone())
+                .setRealName(shopUser == null ? null : shopUser.getRealName())
+                .setUserPhone(shopUser == null ? null : shopUser.getPhone())
                 .setCartIds(cartToStr)
                 .setTotalNum(summary.getTotalNum())
                 .setTotalPrice(summary.getTotalPrice())
@@ -647,13 +647,13 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
                                                              CartSummary summary,
                                                              List<Long> needExpireUserCouponIds) {
         LocalDateTime now = LocalDateTime.now();
-        List<ShopProductCouponUser> userCoupons = lbProductCouponUserMapper.selectByUidOrderByCreateTimeDesc(userId);
+        List<ShopProductCouponUser> userCoupons = shopProductCouponUserMapper.selectByUidOrderByCreateTimeDesc(userId);
         Map<Long, ShopProductCouponUser> userCouponByCid = deduplicateLatestUserCoupons(userCoupons);
         if (userCouponByCid.isEmpty()) {
             return Collections.emptyList();
         }
 
-        Map<Long, ShopProductCoupon> couponById = lbProductCouponMapper.selectByIds(userCouponByCid.keySet())
+        Map<Long, ShopProductCoupon> couponById = shopProductCouponMapper.selectByIds(userCouponByCid.keySet())
                 .stream()
                 .collect(Collectors.toMap(ShopProductCoupon::getId, c -> c, (a, b) -> a));
 
@@ -729,20 +729,20 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         return vo;
     }
 
-    private ShopPreOrderVO assemblePreOrderDetailVO(ShopOrder lbOrder,
+    private ShopPreOrderVO assemblePreOrderDetailVO(ShopOrder shopOrder,
                                                   Long defaultAddressId,
                                                   CartSummary summary,
                                                   List<ShopProductCartAndSkuVO> cartRows,
                                                   List<ShopCouponAndUserVO> couponVos,
                                                   long maxUseIntegral,
                                                   long flashRemainingSeconds) {
-        BigDecimal couponPrice = lbOrder.getCouponPrice() == null ? BigDecimal.ZERO : lbOrder.getCouponPrice();
-        BigDecimal deductionPrice = lbOrder.getDeductionPrice() == null ? BigDecimal.ZERO : lbOrder.getDeductionPrice();
+        BigDecimal couponPrice = shopOrder.getCouponPrice() == null ? BigDecimal.ZERO : shopOrder.getCouponPrice();
+        BigDecimal deductionPrice = shopOrder.getDeductionPrice() == null ? BigDecimal.ZERO : shopOrder.getDeductionPrice();
         BigDecimal finalTotal = summary.getTotalPrice().add(summary.getTotalPostage())
                 .subtract(couponPrice).subtract(deductionPrice).max(BigDecimal.ZERO);
 
         ShopPreOrderVO vo = new ShopPreOrderVO();
-        vo.setOrderNo(lbOrder.getOrderId());
+        vo.setOrderNo(shopOrder.getOrderId());
         vo.setAddressId(defaultAddressId);
         vo.setFreightTotalFee(summary.getTotalPostage().toPlainString());
         vo.setPayFee(summary.getTotalPrice().toPlainString());
@@ -755,8 +755,8 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         vo.setFinalTotalFee(finalTotal.toPlainString());
         vo.setOrderInfoList(cartRows);
         vo.setPlatCouponUserList(couponVos);
-        vo.setOrderType(resolveOrderType(lbOrder));
-        vo.setRemainingSeconds(resolveOrderType(lbOrder) == ORDER_TYPE_FLASH ? Math.max(flashRemainingSeconds, 0L) : 0L);
+        vo.setOrderType(resolveOrderType(shopOrder));
+        vo.setRemainingSeconds(resolveOrderType(shopOrder) == ORDER_TYPE_FLASH ? Math.max(flashRemainingSeconds, 0L) : 0L);
         return vo;
     }
 
@@ -787,10 +787,10 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
             return result;
         }
 
-        ShopProductCouponUser couponUser = lbProductCouponUserMapper.selectAvailableByIdAndUid(platUserCouponId.longValue(), userId);
+        ShopProductCouponUser couponUser = shopProductCouponUserMapper.selectAvailableByIdAndUid(platUserCouponId.longValue(), userId);
         CommonResponseEnum.INVALID.message("用户优惠券不存在或不可用").assertNull(couponUser);
 
-        ShopProductCoupon coupon = lbProductCouponMapper.selectOneById(couponUser.getCid());
+        ShopProductCoupon coupon = shopProductCouponMapper.selectOneById(couponUser.getCid());
         CommonResponseEnum.INVALID.message("优惠券不存在或不可用").assertNull(coupon);
 
         LocalDateTime now = LocalDateTime.now();
@@ -822,8 +822,8 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         if (!useIntegralFlag) {
             return deduction;
         }
-        ShopUser lbUser = lbUserService.getById(userId);
-        long currentIntegral = lbUser == null || lbUser.getIntegral() == null ? 0L : lbUser.getIntegral();
+        ShopUser shopUser = shopUserService.getById(userId);
+        long currentIntegral = shopUser == null || shopUser.getIntegral() == null ? 0L : shopUser.getIntegral();
         BigDecimal effectiveRemain = remainForIntegral.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : remainForIntegral;
         long maxIntegralByMoney = effectiveRemain.multiply(BigDecimal.valueOf(ORDER_INTEGRAL_DEDUCTION_RATIO))
                 .setScale(0, RoundingMode.DOWN)
@@ -899,8 +899,8 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         return vo;
     }
 
-    private ShopOrderPaymentInfoVO assemblePaymentInfoVO(ShopOrder order, ShopUser lbUser, long remainingSeconds) {
-        BigDecimal nowMoney = lbUser == null || lbUser.getNowMoney() == null ? BigDecimal.ZERO : lbUser.getNowMoney();
+    private ShopOrderPaymentInfoVO assemblePaymentInfoVO(ShopOrder order, ShopUser shopUser, long remainingSeconds) {
+        BigDecimal nowMoney = shopUser == null || shopUser.getNowMoney() == null ? BigDecimal.ZERO : shopUser.getNowMoney();
         int paid = normalizePaidStatus(order.getPaid());
 
         ShopOrderPaymentInfoVO vo = new ShopOrderPaymentInfoVO();
@@ -913,9 +913,9 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         vo.setRemainingSeconds(Math.max(remainingSeconds, 0L));
         vo.setNowMoney(nowMoney.toPlainString());
         vo.setCanPay(paid == ORDER_PAID_PENDING && remainingSeconds > 0);
-        vo.setEnableWxpay(lbPaymentProperties.isEnableWxpay());
-        vo.setEnableAlipay(lbPaymentProperties.isEnableAlipay());
-        vo.setEnableYue(lbPaymentProperties.isEnableYue());
+        vo.setEnableWxpay(shopPaymentProperties.isEnableWxpay());
+        vo.setEnableAlipay(shopPaymentProperties.isEnableAlipay());
+        vo.setEnableYue(shopPaymentProperties.isEnableYue());
         return vo;
     }
 
@@ -976,7 +976,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         detail.setFreightTotalFee(order.getFreightPrice() == null ? "0" : order.getFreightPrice().toPlainString());
         detail.setExpressNo(order.getExpressNo());
         if (order.getDeliveryId() != null) {
-            ShopExpress express = lbExpressService.getById(order.getDeliveryId());
+            ShopExpress express = shopExpressService.getById(order.getDeliveryId());
             if (express != null) {
                 detail.setExpressName(express.getExpressName());
             }
@@ -1010,7 +1010,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         vo.setDeliveryId(order.getDeliveryId());
         vo.setExpressNo(order.getExpressNo());
         if (order.getDeliveryId() != null) {
-            ShopExpress express = lbExpressService.getById(order.getDeliveryId());
+            ShopExpress express = shopExpressService.getById(order.getDeliveryId());
             if (express != null) {
                 vo.setExpressCode(express.getCode());
                 vo.setExpressName(express.getExpressName());
@@ -1070,9 +1070,9 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     // ==================== 三、数据库读取与持久化写入层 ====================
 
     private List<ShopProductCartAndSkuVO> loadAndVerifyActiveCarts(long userId, List<Integer> distinctCartIds) {
-        List<ShopProductCartAndSkuVO> lbProductCarts = mapper.selectOrderCartWithSku(distinctCartIds, userId, 0);
-        if (lbProductCarts.size() != distinctCartIds.size()) {
-            Set<Long> foundCartIds = lbProductCarts.stream()
+        List<ShopProductCartAndSkuVO> shopProductCarts = mapper.selectOrderCartWithSku(distinctCartIds, userId, 0);
+        if (shopProductCarts.size() != distinctCartIds.size()) {
+            Set<Long> foundCartIds = shopProductCarts.stream()
                     .map(ShopProductCartAndSkuVO::getId)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
@@ -1082,7 +1082,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
             CommonResponseEnum.INVALID.message("购物车数据不一致，请刷新后重试，先需要添加购物车，缺失购物车ID=" + missingCartIds)
                     .assertTrue(true);
         }
-        return lbProductCarts;
+        return shopProductCarts;
     }
 
     private List<ShopProductCartAndSkuVO> loadAndSortPreOrderCartRows(long userId, List<Long> distinctCartIds) {
@@ -1101,7 +1101,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         save(order);
         saveOrderStatusLog(order.getId(), ShopOrderStatusConstant.CHANGE_TYPE_CREATE_ORDER, ShopOrderStatusConstant.CHANGE_MESSAGE_CREATE_ORDER);
 
-        int affectRows = lbProductCartMapper.markRemovedByIdsAndUid(userId, distinctCartIds);
+        int affectRows = shopProductCartMapper.markRemovedByIdsAndUid(userId, distinctCartIds);
         CommonResponseEnum.INVALID.message("更新购物车状态失败，请刷新后重试")
                 .assertTrue(affectRows != distinctCartIds.size());
     }
@@ -1112,12 +1112,12 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
                                                 int aggregatedStock,
                                                 int cartNum) {
         int nextSkuVersion = (latestSku.getVersion() == null ? 0 : latestSku.getVersion()) + 1;
-        int skuAffected = lbProductAttrValueMapper.deductStockOptimistic(
+        int skuAffected = shopProductAttrValueMapper.deductStockOptimistic(
                 latestSku.getId(), skuStock - cartNum, nextSkuVersion, cartNum, latestSku.getVersion());
         CommonResponseEnum.INVALID.message("秒杀商品库存不足，请重试").assertTrue(skuAffected != 1);
 
         int nextProductVersion = (latestProduct.getVersion() == null ? 0 : latestProduct.getVersion()) + 1;
-        int productAffected = lbProductMapper.updateStockOptimistic(
+        int productAffected = shopProductMapper.updateStockOptimistic(
                 latestProduct.getId(), Math.max(aggregatedStock - cartNum, 0), nextProductVersion, latestProduct.getVersion());
         CommonResponseEnum.INVALID.message("秒杀商品库存不足，请重试").assertTrue(productAffected != 1);
     }
@@ -1129,7 +1129,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
                                                 BigDecimal totalPrice,
                                                 BigDecimal freightPrice,
                                                 int cartNum) {
-        lbProductCartMapper.insert(cart);
+        shopProductCartMapper.insert(cart);
 
         ShopOrder order = new ShopOrder()
                 .setOrderId(orderNo)
@@ -1158,14 +1158,14 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
             update.setId(id);
             update.setStatus(2);
             update.setUpdateTime(now);
-            lbProductCouponUserMapper.update(update);
+            shopProductCouponUserMapper.update(update);
         }
     }
 
     private void persistOrderConfirmAndCoupon(ShopOrder order, ShopOrder updateEntity, long userId, Long usedCouponUserId) {
         updateById(updateEntity);
         if (usedCouponUserId != null) {
-            int affectRows = lbProductCouponUserMapper.markUsedByIdAndUid(usedCouponUserId, userId, LocalDateTime.now());
+            int affectRows = shopProductCouponUserMapper.markUsedByIdAndUid(usedCouponUserId, userId, LocalDateTime.now());
             CommonResponseEnum.INVALID.message("更新优惠券状态失败，请重试").assertTrue(affectRows != 1);
         }
     }
@@ -1181,7 +1181,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         userUpdate.setUid(userId);
         userUpdate.setNowMoney(remainMoney);
         userUpdate.setIntegral(remainIntegral);
-        boolean userUpdated = lbUserService.updateById(userUpdate);
+        boolean userUpdated = shopUserService.updateById(userUpdate);
         CommonResponseEnum.INVALID.message("账户资产扣减失败，请重试").assertTrue(!userUpdated);
 
         if (resolveOrderType(order) != ORDER_TYPE_FLASH) {
@@ -1223,14 +1223,14 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         CommonResponseEnum.INVALID.message("确认收货失败，请稍后重试").assertTrue(!updated);
 
         if (gainIntegral > 0) {
-            ShopUser user = lbUserService.getById(userId);
+            ShopUser user = shopUserService.getById(userId);
             CommonResponseEnum.INVALID_USER.assertNull(user);
 
             int currentIntegral = (user.getIntegral() == null ? 0 : user.getIntegral()) + gainIntegral;
             ShopUser userUpdate = new ShopUser();
             userUpdate.setUid(userId);
             userUpdate.setIntegral(currentIntegral);
-            boolean userUpdated = lbUserService.updateById(userUpdate);
+            boolean userUpdated = shopUserService.updateById(userUpdate);
             CommonResponseEnum.INVALID.message("更新用户积分失败，请稍后重试").assertTrue(!userUpdated);
 
             addUserGainIntegralBill(order, userId, gainIntegral, currentIntegral);
@@ -1242,7 +1242,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
 
     private void persistOrderEvaluation(ShopOrder order, List<ShopProductComment> comments) {
         for (ShopProductComment comment : comments) {
-            int rows = lbProductCommentMapper.insert(comment);
+            int rows = shopProductCommentMapper.insert(comment);
             CommonResponseEnum.INVALID.message("写入商品评价失败，请稍后重试").assertTrue(rows <= 0);
         }
 
@@ -1256,7 +1256,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     }
 
     private void persistDeliverAction(Long orderId, Long expressId, ShopExpressInfo expressInfo, ShopOrder orderUpdate) {
-        lbExpressInfoMapper.insert(expressInfo);
+        shopExpressInfoMapper.insert(expressInfo);
         updateById(orderUpdate);
         saveOrderStatusLog(orderId, ShopOrderStatusConstant.CHANGE_TYPE_DELIVERY,
                 String.format(ShopOrderStatusConstant.CHANGE_MESSAGE_DELIVERY_TEMPLATE, resolveExpressName(expressId)));
@@ -1274,7 +1274,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         userBill.setBalance(remainMoney);
         userBill.setMark("支付" + payPrice.toPlainString() + "元购买商品");
         userBill.setStatus(1);
-        boolean saved = lbUserBillService.save(userBill);
+        boolean saved = shopUserBillService.save(userBill);
         CommonResponseEnum.INVALID.message("写入用户账单失败，请重试").assertTrue(!saved);
     }
 
@@ -1290,7 +1290,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         integralBill.setBalance(remainIntegral);
         integralBill.setMark("订单支付使用" + useIntegral + "积分");
         integralBill.setStatus(1);
-        boolean saved = lbUserIntegralBillService.save(integralBill);
+        boolean saved = shopUserIntegralBillService.save(integralBill);
         CommonResponseEnum.INVALID.message("写入积分流水失败，请重试").assertTrue(!saved);
     }
 
@@ -1306,13 +1306,13 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         integralBill.setBalance(currentIntegral);
         integralBill.setMark("订单确认收货获得" + gainIntegral + "积分");
         integralBill.setStatus(1);
-        boolean saved = lbUserIntegralBillService.save(integralBill);
+        boolean saved = shopUserIntegralBillService.save(integralBill);
         CommonResponseEnum.INVALID.message("写入积分流水失败，请重试").assertTrue(!saved);
     }
 
     private void deductOrderStock(ShopOrder order, long userId) {
         List<Long> cartIds = parseOrderCartIds(order.getCartIds());
-        List<ShopProductCart> carts = lbProductCartMapper.selectByUidAndIds(userId, cartIds);
+        List<ShopProductCart> carts = shopProductCartMapper.selectByUidAndIds(userId, cartIds);
         CommonResponseEnum.INVALID.message("订单购物车数据不一致，请刷新后重试")
                 .assertTrue(carts == null || carts.size() != cartIds.size());
 
@@ -1328,7 +1328,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
             Long skuId = entry.getKey();
             Integer deductNum = entry.getValue();
 
-            ShopProductAttrValue sku = lbProductAttrValueService.getById(skuId);
+            ShopProductAttrValue sku = shopProductAttrValueService.getById(skuId);
             CommonResponseEnum.INVALID.message("商品规格不存在或已下架").assertNull(sku);
 
             int skuStock = sku.getStock() == null ? 0 : sku.getStock();
@@ -1337,7 +1337,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
             ShopProductAttrValue skuUpdate = new ShopProductAttrValue();
             skuUpdate.setId(skuId);
             skuUpdate.setStock(skuStock - deductNum);
-            boolean skuUpdated = lbProductAttrValueService.updateById(skuUpdate);
+            boolean skuUpdated = shopProductAttrValueService.updateById(skuUpdate);
             CommonResponseEnum.INVALID.message("扣减商品规格库存失败，请重试").assertTrue(!skuUpdated);
 
             CommonResponseEnum.INVALID.message("商品数据异常，缺少商品ID").assertNull(sku.getProductId());
@@ -1348,7 +1348,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
             Long productId = entry.getKey();
             Integer deductNum = entry.getValue();
 
-            ShopProduct product = lbProductService.getById(productId);
+            ShopProduct product = shopProductService.getById(productId);
             CommonResponseEnum.INVALID.message("商品不存在或已下架").assertNull(product);
 
             int productStock = product.getStock() == null ? 0 : product.getStock();
@@ -1357,7 +1357,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
             ShopProduct productUpdate = new ShopProduct();
             productUpdate.setId(productId);
             productUpdate.setStock(productStock - deductNum);
-            boolean productUpdated = lbProductService.updateById(productUpdate);
+            boolean productUpdated = shopProductService.updateById(productUpdate);
             CommonResponseEnum.INVALID.message("扣减商品库存失败，请重试").assertTrue(!productUpdated);
         }
     }
@@ -1370,7 +1370,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         if (cartIds.isEmpty()) {
             return;
         }
-        List<ShopProductCart> carts = lbProductCartMapper.selectByIds(cartIds);
+        List<ShopProductCart> carts = shopProductCartMapper.selectByIds(cartIds);
         if (carts == null || carts.isEmpty()) {
             return;
         }
@@ -1380,11 +1380,11 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
             if (cart.getSkuId() == null || cart.getCartNum() == null || cart.getCartNum() <= 0) {
                 continue;
             }
-            ShopProductAttrValue sku = lbProductAttrValueService.getById(cart.getSkuId());
+            ShopProductAttrValue sku = shopProductAttrValueService.getById(cart.getSkuId());
             if (sku != null) {
                 int newStock = (sku.getStock() == null ? 0 : sku.getStock()) + cart.getCartNum();
                 int nextVersion = (sku.getVersion() == null ? 0 : sku.getVersion()) + 1;
-                lbProductAttrValueMapper.restoreStockOptimistic(sku.getId(), newStock, nextVersion, sku.getVersion());
+                shopProductAttrValueMapper.restoreStockOptimistic(sku.getId(), newStock, nextVersion, sku.getVersion());
                 if (sku.getProductId() != null) {
                     productRestoreMap.merge(sku.getProductId(), cart.getCartNum(), Integer::sum);
                 }
@@ -1392,13 +1392,13 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         }
 
         for (Map.Entry<Long, Integer> entry : productRestoreMap.entrySet()) {
-            ShopProduct product = lbProductService.getById(entry.getKey());
+            ShopProduct product = shopProductService.getById(entry.getKey());
             if (product == null) {
                 continue;
             }
             int newStock = (product.getStock() == null ? 0 : product.getStock()) + entry.getValue();
             int nextVersion = (product.getVersion() == null ? 0 : product.getVersion()) + 1;
-            lbProductMapper.updateStockOptimistic(product.getId(), newStock, nextVersion, product.getVersion());
+            shopProductMapper.updateStockOptimistic(product.getId(), newStock, nextVersion, product.getVersion());
         }
 
         saveOrderStatusLog(order.getId(), ShopOrderStatusConstant.CHANGE_TYPE_FLASH_RELEASE, changeMessage);
@@ -1421,7 +1421,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     }
 
     private ShopUserAddress requireUserAddress(long userId, Long addressId) {
-        ShopUserAddress address = lbUserAddressMapper.selectActiveByIdAndUid(addressId, userId);
+        ShopUserAddress address = shopUserAddressMapper.selectActiveByIdAndUid(addressId, userId);
         CommonResponseEnum.INVALID.message("收货地址不存在").assertNull(address);
         return address;
     }
@@ -1433,7 +1433,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     }
 
     private int resolveAggregatedProductStock(Long productId, ShopProduct latestProduct) {
-        List<ShopProductAttrValue> productSkuList = lbProductAttrValueService.getListByProductId(productId);
+        List<ShopProductAttrValue> productSkuList = shopProductAttrValueService.getListByProductId(productId);
         int productStock = latestProduct.getStock() == null ? 0 : latestProduct.getStock();
         if (productSkuList == null || productSkuList.isEmpty()) {
             return productStock;
@@ -1446,8 +1446,8 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     }
 
     private long resolveMaxUsableIntegral(long userId, BigDecimal totalPrice) {
-        ShopUser lbUser = lbUserService.getById(userId);
-        int userIntegral = lbUser == null || lbUser.getIntegral() == null ? 0 : lbUser.getIntegral();
+        ShopUser shopUser = shopUserService.getById(userId);
+        int userIntegral = shopUser == null || shopUser.getIntegral() == null ? 0 : shopUser.getIntegral();
         long maxIntegralByMoney = totalPrice.multiply(BigDecimal.valueOf(ORDER_INTEGRAL_DEDUCTION_RATIO))
                 .setScale(0, RoundingMode.DOWN)
                 .longValue();
@@ -1637,7 +1637,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     }
 
     private long getPaymentTimeoutSeconds() {
-        long timeoutMinutes = lbPaymentProperties.getTimeoutMinutes();
+        long timeoutMinutes = shopPaymentProperties.getTimeoutMinutes();
         if (timeoutMinutes <= 0) {
             timeoutMinutes = 30L;
         }
@@ -1675,7 +1675,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     private List<ShopOrderStatusVO> loadOrderStatusTimeline(Long orderId, boolean descending) {
         ShopOrderStatusDTO.ListQuery query = new ShopOrderStatusDTO.ListQuery();
         query.setOid(orderId);
-        List<ShopOrderStatusVO> list = lbOrderStatusService.list(query);
+        List<ShopOrderStatusVO> list = shopOrderStatusService.list(query);
         if (list == null) {
             return Collections.emptyList();
         }
@@ -1699,7 +1699,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         if (orderId == null) {
             return null;
         }
-        return lbOrderAfterSaleMapper.selectActiveByOrderId(orderId);
+        return shopOrderAfterSaleMapper.selectActiveByOrderId(orderId);
     }
 
     private ShopFrontOrderProductVO toFrontOrderProduct(ShopProductCartAndSkuVO cartRow) {
@@ -1895,7 +1895,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         orderStatus.setOid(orderId);
         orderStatus.setChangeType(changeType);
         orderStatus.setChangeMessage(changeMessage);
-        lbOrderStatusService.save(orderStatus);
+        shopOrderStatusService.save(orderStatus);
     }
 
     private void addOrderStatusLog(ShopOrder order, Integer newStatus) {
@@ -1953,7 +1953,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         if (deliveryId == null) {
             return "UNKNOWN";
         }
-        ShopExpress express = lbExpressService.getById(deliveryId);
+        ShopExpress express = shopExpressService.getById(deliveryId);
         if (express == null || express.getExpressName() == null || express.getExpressName().isBlank()) {
             return "UNKNOWN";
         }

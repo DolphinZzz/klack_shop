@@ -28,26 +28,26 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientCategoryController {
 
-    private final ShopCategoryService lbCategoryService;
+    private final ShopCategoryService shopCategoryService;
 
     @SaIgnore
     @Operation(summary = "首页分类数据")
     @GetMapping("/index")
     public ApiResult<List<ShopCategoryVO>> frontCategoryList() {
-        return ApiResult.success(lbCategoryService.cateChildrenList());
+        return ApiResult.success(shopCategoryService.cateChildrenList());
     }
 
     @SaIgnore
     @Operation(summary = "查询所有分类数据")
     @GetMapping("/allCate")
     public ApiResult<List<ShopCategoryVO>> categoryChildrenList() {
-        return ApiResult.success(lbCategoryService.cateChildrenList());
+        return ApiResult.success(shopCategoryService.cateChildrenList());
     }
 
     @SaIgnore
     @Operation(summary = "分类列表分页查询")
     @GetMapping
     public ApiResult<PageResult<ShopCategoryVO>> list(ShopCategoryDTO.ListQuery dto) {
-        return ApiPageResult.success(lbCategoryService.page(dto));
+        return ApiPageResult.success(shopCategoryService.page(dto));
     }
 }

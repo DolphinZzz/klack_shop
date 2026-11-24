@@ -25,12 +25,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientHomeNewsCategoryController {
 
-    private final ShopHomeNewsCategoryService lbHomeNewsCategoryService;
+    private final ShopHomeNewsCategoryService shopHomeNewsCategoryService;
 
     @SaIgnore
     @Operation(summary = "资讯频道分类")
     @GetMapping("/index")
     public ApiResult<List<ShopHomeNewsCategoryVO>> frontList() {
-        return ApiResult.success(lbHomeNewsCategoryService.frontList());
+        return ApiResult.success(shopHomeNewsCategoryService.frontList());
     }
 }

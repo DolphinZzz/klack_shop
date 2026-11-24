@@ -25,43 +25,43 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerUserRechargeActivityController {
 
-    private final ShopUserRechargeActivityService lbUserRechargeActivityService;
+    private final ShopUserRechargeActivityService shopUserRechargeActivityService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.user.recharge.activity.create")
+    @SaCheckPermission(value = "shop.user.recharge.activity.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopUserRechargeActivityDTO.Create dto) {
-        lbUserRechargeActivityService.create(dto);
+        shopUserRechargeActivityService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.user.recharge.activity.update")
+    @SaCheckPermission(value = "shop.user.recharge.activity.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopUserRechargeActivityDTO.Update dto) {
-        lbUserRechargeActivityService.update(dto);
+        shopUserRechargeActivityService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.user.recharge.activity.remove")
+    @SaCheckPermission(value = "shop.user.recharge.activity.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbUserRechargeActivityService.remove(dto);
+        shopUserRechargeActivityService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.user.recharge.activity.query_table")
+    @SaCheckPermission(value = "shop.user.recharge.activity.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopUserRechargeActivityVO>> list(ShopUserRechargeActivityDTO.ListQuery dto) {
-        return ApiPageResult.success(lbUserRechargeActivityService.page(dto));
+        return ApiPageResult.success(shopUserRechargeActivityService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.user.recharge.activity.query_table")
+    @SaCheckPermission(value = "shop.user.recharge.activity.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopUserRechargeActivityVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbUserRechargeActivityService.detail(id));
+        return ApiResult.success(shopUserRechargeActivityService.detail(id));
     }
 }

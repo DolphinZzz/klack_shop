@@ -27,49 +27,49 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ServerHomeNewsCategoryController {
 
-    private final ShopHomeNewsCategoryService lbHomeNewsCategoryService;
+    private final ShopHomeNewsCategoryService shopHomeNewsCategoryService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.home.news.category.create")
+    @SaCheckPermission(value = "shop.home.news.category.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopHomeNewsCategoryDTO.Create dto) {
-        lbHomeNewsCategoryService.create(dto);
+        shopHomeNewsCategoryService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.home.news.category.update")
+    @SaCheckPermission(value = "shop.home.news.category.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopHomeNewsCategoryDTO.Update dto) {
-        lbHomeNewsCategoryService.update(dto);
+        shopHomeNewsCategoryService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.home.news.category.remove")
+    @SaCheckPermission(value = "shop.home.news.category.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbHomeNewsCategoryService.remove(dto);
+        shopHomeNewsCategoryService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.home.news.category.query_table")
+    @SaCheckPermission(value = "shop.home.news.category.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopHomeNewsCategoryVO>> list(ShopHomeNewsCategoryDTO.ListQuery dto) {
-        return ApiPageResult.success(lbHomeNewsCategoryService.page(dto));
+        return ApiPageResult.success(shopHomeNewsCategoryService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.home.news.category.query_table")
+    @SaCheckPermission(value = "shop.home.news.category.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopHomeNewsCategoryVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbHomeNewsCategoryService.detail(id));
+        return ApiResult.success(shopHomeNewsCategoryService.detail(id));
     }
 
     @Operation(summary = "全部分类")
     @GetMapping("/all")
     public ApiResult<List<ShopHomeNewsCategoryVO>> allList() {
-        return ApiResult.success(lbHomeNewsCategoryService.frontList());
+        return ApiResult.success(shopHomeNewsCategoryService.frontList());
     }
 }

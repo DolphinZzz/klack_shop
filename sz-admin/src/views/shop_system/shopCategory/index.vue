@@ -11,11 +11,11 @@
     >
       <!-- 表格 header 按钮 -->
       <template #tableHeader="scope">
-        <el-button type="primary" v-auth="'lb.category.create'" :icon="CirclePlus" @click="openAddEdit('新增分类管理')">
+        <el-button type="primary" v-auth="'shop.category.create'" :icon="CirclePlus" @click="openAddEdit('新增分类管理')">
           新增
         </el-button>
         <el-button
-          v-auth="'lb.category.remove'"
+          v-auth="'shop.category.remove'"
           type="danger"
           :icon="Delete"
           plain
@@ -27,7 +27,7 @@
       </template>
       <template #operation="{ row }">
         <el-button
-          v-auth="'lb.category.update'"
+          v-auth="'shop.category.update'"
           type="primary"
           link
           :icon="EditPen"
@@ -35,7 +35,7 @@
         >
           编辑
         </el-button>
-        <el-button v-auth="'lb.category.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)"> 删除 </el-button>
+        <el-button v-auth="'shop.category.remove'" type="primary" link :icon="Delete" @click="deleteInfo(row)"> 删除 </el-button>
       </template>
     </ProTable>
     <ShopCategoryForm ref="shopCategoryRef" />

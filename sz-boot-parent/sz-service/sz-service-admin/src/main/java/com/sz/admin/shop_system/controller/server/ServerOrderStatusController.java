@@ -25,43 +25,43 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerOrderStatusController {
 
-    private final ShopOrderStatusService lbOrderStatusService;
+    private final ShopOrderStatusService shopOrderStatusService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.order.status.create")
+    @SaCheckPermission(value = "shop.order.status.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopOrderStatusDTO.Create dto) {
-        lbOrderStatusService.create(dto);
+        shopOrderStatusService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.order.status.update")
+    @SaCheckPermission(value = "shop.order.status.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopOrderStatusDTO.Update dto) {
-        lbOrderStatusService.update(dto);
+        shopOrderStatusService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.order.status.remove")
+    @SaCheckPermission(value = "shop.order.status.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbOrderStatusService.remove(dto);
+        shopOrderStatusService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.order.status.query_table")
+    @SaCheckPermission(value = "shop.order.status.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopOrderStatusVO>> list(ShopOrderStatusDTO.ListQuery dto) {
-        return ApiPageResult.success(lbOrderStatusService.page(dto));
+        return ApiPageResult.success(shopOrderStatusService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.order.status.query_table")
+    @SaCheckPermission(value = "shop.order.status.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopOrderStatusVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbOrderStatusService.detail(id));
+        return ApiResult.success(shopOrderStatusService.detail(id));
     }
 }

@@ -24,13 +24,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ClientUserRechargeController {
 
-    private final ShopUserRechargeService lbUserRechargeService;
+    private final ShopUserRechargeService shopUserRechargeService;
 
     @Operation(summary = "用户充值金额-客户端")
     @SaCheckLogin(type = "shop_user")
     @PostMapping("/recharge")
     public ApiResult<Void> recharge(@RequestBody ShopUserRechargeDTO.Create dto) {
-        lbUserRechargeService.frontRecharge(dto);
+        shopUserRechargeService.frontRecharge(dto);
         return ApiResult.success();
     }
 }

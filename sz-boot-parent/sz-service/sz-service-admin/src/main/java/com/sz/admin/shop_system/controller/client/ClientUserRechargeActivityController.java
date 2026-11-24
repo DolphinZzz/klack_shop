@@ -25,12 +25,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientUserRechargeActivityController {
 
-    private final ShopUserRechargeActivityService lbUserRechargeActivityService;
+    private final ShopUserRechargeActivityService shopUserRechargeActivityService;
 
     @Operation(summary = "充值活动列表-客户端")
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/list")
     public ApiResult<List<ShopUserRechargeActivityVO>> frontList() {
-        return ApiResult.success(lbUserRechargeActivityService.frontList());
+        return ApiResult.success(shopUserRechargeActivityService.frontList());
     }
 }

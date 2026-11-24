@@ -26,13 +26,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientUserFootprintController {
 
-    private final ShopUserFootprintService lbUserFootprintService;
+    private final ShopUserFootprintService shopUserFootprintService;
 
     @Operation(summary = "记录商品浏览足迹-PC端")
     @SaCheckLogin(type = "shop_user")
     @PostMapping("/record")
     public ApiResult<Void> record(@RequestParam("productId") Long productId) {
-        lbUserFootprintService.record(StpUserUtil.getLoginIdAsLong(), productId);
+        shopUserFootprintService.record(StpUserUtil.getLoginIdAsLong(), productId);
         return ApiResult.success();
     }
 
@@ -40,6 +40,6 @@ public class ClientUserFootprintController {
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/list")
     public ApiResult<List<ShopFrontUserFootprintVO>> list(ShopUserFootprintDTO.FrontList dto) {
-        return ApiResult.success(lbUserFootprintService.frontList(StpUserUtil.getLoginIdAsLong(), dto));
+        return ApiResult.success(shopUserFootprintService.frontList(StpUserUtil.getLoginIdAsLong(), dto));
     }
 }

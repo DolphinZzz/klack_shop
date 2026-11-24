@@ -27,13 +27,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ClientOrderAfterSaleController {
 
-    private final ShopOrderAfterSaleService lbOrderAfterSaleService;
+    private final ShopOrderAfterSaleService shopOrderAfterSaleService;
 
     @Operation(summary = "PC端申请售后")
     @SaCheckLogin(type = "shop_user")
     @PostMapping("/apply")
     public ApiResult<Void> frontApply(@RequestBody ShopOrderAfterSaleDTO.FrontApply dto) {
-        lbOrderAfterSaleService.frontApply(StpUserUtil.getLoginIdAsLong(), dto);
+        shopOrderAfterSaleService.frontApply(StpUserUtil.getLoginIdAsLong(), dto);
         return ApiResult.success();
     }
 
@@ -41,21 +41,21 @@ public class ClientOrderAfterSaleController {
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/page")
     public ApiResult<PageResult<ShopFrontOrderAfterSaleVO>> frontPage(ShopOrderAfterSaleDTO.FrontList dto) {
-        return ApiPageResult.success(lbOrderAfterSaleService.frontPage(StpUserUtil.getLoginIdAsLong(), dto));
+        return ApiPageResult.success(shopOrderAfterSaleService.frontPage(StpUserUtil.getLoginIdAsLong(), dto));
     }
 
     @Operation(summary = "PC端售后详情")
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/detail/{id}")
     public ApiResult<ShopFrontOrderAfterSaleVO> frontDetail(@PathVariable Long id) {
-        return ApiResult.success(lbOrderAfterSaleService.frontDetail(StpUserUtil.getLoginIdAsLong(), id));
+        return ApiResult.success(shopOrderAfterSaleService.frontDetail(StpUserUtil.getLoginIdAsLong(), id));
     }
 
     @Operation(summary = "PC端填写退货物流")
     @SaCheckLogin(type = "shop_user")
     @PostMapping("/return")
     public ApiResult<Void> frontSubmitReturn(@RequestBody ShopOrderAfterSaleDTO.FrontReturn dto) {
-        lbOrderAfterSaleService.frontSubmitReturn(StpUserUtil.getLoginIdAsLong(), dto);
+        shopOrderAfterSaleService.frontSubmitReturn(StpUserUtil.getLoginIdAsLong(), dto);
         return ApiResult.success();
     }
 }

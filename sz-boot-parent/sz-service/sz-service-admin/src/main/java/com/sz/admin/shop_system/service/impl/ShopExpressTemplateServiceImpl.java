@@ -37,15 +37,15 @@ public class ShopExpressTemplateServiceImpl extends ServiceImpl<ShopExpressTempl
 
     @Override
     public void create(ShopExpressTemplateDTO.Create dto) {
-        ShopExpressTemplate lbExpressTemplate = BeanCopyUtils.copy(dto, ShopExpressTemplate.class);
-        save(lbExpressTemplate);
+        ShopExpressTemplate shopExpressTemplate = BeanCopyUtils.copy(dto, ShopExpressTemplate.class);
+        save(shopExpressTemplate);
     }
 
     @Override
     public void update(ShopExpressTemplateDTO.Update dto) {
         CommonResponseEnum.INVALID_ID.assertTrue(dto.getId() == null || getById(dto.getId()) == null);
-        ShopExpressTemplate lbExpressTemplate = BeanCopyUtils.copy(dto, ShopExpressTemplate.class);
-        saveOrUpdate(lbExpressTemplate);
+        ShopExpressTemplate shopExpressTemplate = BeanCopyUtils.copy(dto, ShopExpressTemplate.class);
+        saveOrUpdate(shopExpressTemplate);
     }
 
     @Override

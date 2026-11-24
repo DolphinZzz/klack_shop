@@ -50,15 +50,15 @@ public class ShopHomeServiceImpl implements ShopHomeService {
     private static final int MAX_SHOW_PRODUCTS_SIZE = 80;
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private final ShopCategoryService lbCategoryService;
-    private final ShopHomeNewsService lbHomeNewsService;
-    private final ShopFlashSaleService lbFlashSaleService;
-    private final ShopProductMapper lbProductMapper;
-    private final ShopUserService lbUserService;
+    private final ShopCategoryService shopCategoryService;
+    private final ShopHomeNewsService shopHomeNewsService;
+    private final ShopFlashSaleService shopFlashSaleService;
+    private final ShopProductMapper shopProductMapper;
+    private final ShopUserService shopUserService;
 
     @Override
     public ShopHomeIndexVO frontIndex() {
-        List<ShopCategoryVO> categoryTree = lbCategoryService.cateChildrenList();
+        List<ShopCategoryVO> categoryTree = shopCategoryService.cateChildrenList();
         List<ShopProduct> showProducts = loadHomeShowProducts();
         return assembleHomeIndex(categoryTree, showProducts);
     }
@@ -66,7 +66,7 @@ public class ShopHomeServiceImpl implements ShopHomeService {
     @Override
     public List<ShopHomeNewBookVO> newRecommend(Integer size) {
         int limit = resolveRecommendLimit(size);
-        List<ShopProduct> products = lbProductMapper.selectNewRecommendProducts(limit);
+        List<ShopProduct> products = shopProductMapper.selectNewRecommendProducts(limit);
         return buildHomeProductList(products);
     }
 
@@ -79,7 +79,7 @@ public class ShopHomeServiceImpl implements ShopHomeService {
 
     @Override
     public List<ShopFlashSaleFrontVO> flashSale(Integer size) {
-        return lbFlashSaleService.activeFrontList(size);
+        return shopFlashSaleService.activeFrontList(size);
     }
 
     private int resolveRecommendLimit(Integer size) {
@@ -87,14 +87,14 @@ public class ShopHomeServiceImpl implements ShopHomeService {
     }
 
     private List<ShopProduct> loadHomeShowProducts() {
-        return lbProductMapper.selectHomeShowProducts(MAX_SHOW_PRODUCTS_SIZE);
+        return shopProductMapper.selectHomeShowProducts(MAX_SHOW_PRODUCTS_SIZE);
     }
 
     private List<ShopProduct> loadGuessLikeProducts(int limit) {
-        List<ShopProduct> products = new ArrayList<>(lbProductMapper.selectBestProductsByBrowse(limit));
+        List<ShopProduct> products = new ArrayList<>(shopProductMapper.selectBestProductsByBrowse(limit));
         if (products.size() < limit) {
             int remain = limit - products.size();
-            products.addAll(lbProductMapper.selectNonBestProductsByBrowse(remain));
+            products.addAll(shopProductMapper.selectNonBestProductsByBrowse(remain));
         }
         return products;
     }
@@ -190,7 +190,7 @@ public class ShopHomeServiceImpl implements ShopHomeService {
     }
 
     private List<ShopHomeIndexVO.HomeNoticeVO> buildNoticeList() {
-        List<ShopHomeNewsVO> newsList = lbHomeNewsService.frontList(MAX_NOTICE_SIZE);
+        List<ShopHomeNewsVO> newsList = shopHomeNewsService.frontList(MAX_NOTICE_SIZE);
         if (CollUtil.isEmpty(newsList)) {
             List<ShopHomeIndexVO.HomeNoticeVO> notices = new ArrayList<>();
             notices.add(buildNotice(1, "欢迎来到商城首页"));
@@ -235,7 +235,7 @@ public class ShopHomeServiceImpl implements ShopHomeService {
 
         try {
             long uid = StpUserUtil.getLoginIdAsLong();
-            ShopUserVO user = lbUserService.detail(uid);
+            ShopUserVO user = shopUserService.detail(uid);
             userCard.setLoggedIn(true);
             userCard.setNickname(StrUtil.blankToDefault(user.getNickname(), user.getAccount()));
             userCard.setAvatar(user.getAvatar());

@@ -46,20 +46,20 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class ShopUserBillServiceImpl extends ServiceImpl<ShopUserBillMapper, ShopUserBill> implements ShopUserBillService {
 
-    private final ShopUserMapper lbUserMapper;
-    private final ShopUserRechargeMapper lbUserRechargeMapper;
+    private final ShopUserMapper shopUserMapper;
+    private final ShopUserRechargeMapper shopUserRechargeMapper;
 
     @Override
     public void create(ShopUserBillDTO.Create dto) {
-        ShopUserBill lbUserBill = BeanCopyUtils.copy(dto, ShopUserBill.class);
-        save(lbUserBill);
+        ShopUserBill shopUserBill = BeanCopyUtils.copy(dto, ShopUserBill.class);
+        save(shopUserBill);
     }
 
     @Override
     public void update(ShopUserBillDTO.Update dto) {
         CommonResponseEnum.INVALID_ID.assertTrue(dto.getId() == null || mapper.countById(dto.getId()) <= 0);
-        ShopUserBill lbUserBill = BeanCopyUtils.copy(dto, ShopUserBill.class);
-        saveOrUpdate(lbUserBill);
+        ShopUserBill shopUserBill = BeanCopyUtils.copy(dto, ShopUserBill.class);
+        saveOrUpdate(shopUserBill);
     }
 
     @Override
@@ -93,9 +93,9 @@ public class ShopUserBillServiceImpl extends ServiceImpl<ShopUserBillMapper, Sho
 
     @Override
     public ShopUserBillVO detail(Object id) {
-        ShopUserBill lbUserBill = getById((Serializable) id);
-        CommonResponseEnum.INVALID_ID.assertNull(lbUserBill);
-        return BeanCopyUtils.copy(lbUserBill, ShopUserBillVO.class);
+        ShopUserBill shopUserBill = getById((Serializable) id);
+        CommonResponseEnum.INVALID_ID.assertNull(shopUserBill);
+        return BeanCopyUtils.copy(shopUserBill, ShopUserBillVO.class);
     }
 
     @SneakyThrows
@@ -145,7 +145,7 @@ public class ShopUserBillServiceImpl extends ServiceImpl<ShopUserBillMapper, Sho
         if (userId == null) {
             return BigDecimal.ZERO;
         }
-        ShopUser user = lbUserMapper.selectOneById(userId);
+        ShopUser user = shopUserMapper.selectOneById(userId);
         return user == null || user.getNowMoney() == null ? BigDecimal.ZERO : user.getNowMoney();
     }
 
@@ -153,7 +153,7 @@ public class ShopUserBillServiceImpl extends ServiceImpl<ShopUserBillMapper, Sho
         if (userId == null) {
             return BigDecimal.ZERO;
         }
-        BigDecimal amount = lbUserRechargeMapper.sumPositivePriceByUid(userId);
+        BigDecimal amount = shopUserRechargeMapper.sumPositivePriceByUid(userId);
         return amount == null ? BigDecimal.ZERO : amount;
     }
 

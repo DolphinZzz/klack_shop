@@ -3,7 +3,7 @@ package com.sz.admin.shop_system.mapper;
 import com.mybatisflex.core.BaseMapper;
 import com.sz.admin.shop_system.pojo.dto.ShopUserDTO;
 import com.sz.admin.shop_system.pojo.po.ShopUser;
-import com.sz.admin.shop_system.pojo.vo.ShopUserVO;
+import com.sz.admin.shop_system.pojo.vo.ShopUserListVO;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -30,6 +30,6 @@ public interface ShopUserMapper extends BaseMapper<ShopUser> {
 
     ShopUser selectOneByPhone(@Param("phone") String phone);
 
-    List<ShopUserVO> selectUserList(@Param("dto") ShopUserDTO.ListQuery dto);
+    List<ShopUserListVO> selectUserList(@Param("dto") ShopUserDTO.ListQuery dto);
 
 }

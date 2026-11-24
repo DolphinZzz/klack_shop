@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { lbUserLogoutApi } from '@/api';
+import { shopUserLogoutApi } from '@/api';
 import { useAuthStore } from '@/stores/modules/auth';
 import { useCartStore } from '@/stores/modules/cart';
 
@@ -92,7 +92,7 @@ const onAuthAction = async () => {
     return;
   }
   try {
-    await lbUserLogoutApi();
+    await shopUserLogoutApi();
   } finally {
     authStore.logout();
     cartStore.clear();

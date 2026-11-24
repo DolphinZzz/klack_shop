@@ -24,19 +24,19 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ClientProductCouponController {
 
-    private final ShopProductCouponService lbProductCouponService;
+    private final ShopProductCouponService shopProductCouponService;
 
     @Operation(summary = "领券中心列表-用户端")
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/list")
     public ApiResult<PageResult<ShopProductCouponVO>> frontList(ShopProductCouponDTO.ListQuery dto) {
-        return ApiPageResult.success(lbProductCouponService.frontList(dto));
+        return ApiPageResult.success(shopProductCouponService.frontList(dto));
     }
 
     @Operation(summary = "抢优惠券-用户端")
     @SaCheckLogin(type = "shop_user")
     @PostMapping("/grab/{couponId}")
     public ApiResult<String> grabCoupon(@PathVariable Long couponId) {
-        return ApiResult.success(lbProductCouponService.grabCoupon(couponId));
+        return ApiResult.success(shopProductCouponService.grabCoupon(couponId));
     }
 }

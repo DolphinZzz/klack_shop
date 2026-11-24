@@ -26,12 +26,9 @@
         <result column="status" property="status" />
     </resultMap>
 
-    <resultMap id="ShopUserVOResultMap" type="com.sz.admin.shop_system.pojo.vo.ShopUserVO">
+    <resultMap id="ShopUserListVOResultMap" type="com.sz.admin.shop_system.pojo.vo.ShopUserListVO">
         <id column="uid" property="uid"/>
         <result column="account" property="account" />
-        <result column="password" property="password" />
-        <result column="real_name" property="realName" />
-        <result column="sex" property="sex" />
         <result column="birthday" property="birthday" />
         <result column="card_id" property="cardId" />
         <result column="nickname" property="nickname" />
@@ -53,6 +50,11 @@
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
         uid, account, password, real_name, sex, birthday, card_id, nickname, avatar, phone, add_ip, last_ip, now_money, integral, experience, sign_num, level, user_type, create_time, update_time, status
+    </sql>
+
+    <!-- 台账列表查询结果列（排除用户密码、真实姓名、性别） -->
+    <sql id="List_Column_List">
+        uid, account, birthday, card_id, nickname, avatar, phone, add_ip, last_ip, now_money, integral, experience, sign_num, level, user_type, create_time, update_time, status
     </sql>
 
     <select id="countByUid" resultType="long">
@@ -102,8 +104,8 @@
         LIMIT 1
     </select>
 
-    <select id="selectUserList" resultMap="ShopUserVOResultMap">
-        SELECT <include refid="Base_Column_List"/>
+    <select id="selectUserList" resultMap="ShopUserListVOResultMap">
+        SELECT <include refid="List_Column_List"/>
         FROM shop_user
         <where>
             <if test="dto != null">

@@ -33,15 +33,15 @@ public class ShopOrderStatusServiceImpl extends ServiceImpl<ShopOrderStatusMappe
 
     @Override
     public void create(ShopOrderStatusDTO.Create dto) {
-        ShopOrderStatus lbOrderStatus = BeanCopyUtils.copy(dto, ShopOrderStatus.class);
-        save(lbOrderStatus);
+        ShopOrderStatus shopOrderStatus = BeanCopyUtils.copy(dto, ShopOrderStatus.class);
+        save(shopOrderStatus);
     }
 
     @Override
     public void update(ShopOrderStatusDTO.Update dto) {
         CommonResponseEnum.INVALID_ID.assertTrue(dto.getId() == null || getById(dto.getId()) == null);
-        ShopOrderStatus lbOrderStatus = BeanCopyUtils.copy(dto, ShopOrderStatus.class);
-        saveOrUpdate(lbOrderStatus);
+        ShopOrderStatus shopOrderStatus = BeanCopyUtils.copy(dto, ShopOrderStatus.class);
+        saveOrUpdate(shopOrderStatus);
     }
 
     @Override
@@ -75,8 +75,8 @@ public class ShopOrderStatusServiceImpl extends ServiceImpl<ShopOrderStatusMappe
 
     @Override
     public ShopOrderStatusVO detail(Object id) {
-        ShopOrderStatus lbOrderStatus = getById((Serializable) id);
-        CommonResponseEnum.INVALID_ID.assertNull(lbOrderStatus);
-        return BeanCopyUtils.copy(lbOrderStatus, ShopOrderStatusVO.class);
+        ShopOrderStatus shopOrderStatus = getById((Serializable) id);
+        CommonResponseEnum.INVALID_ID.assertNull(shopOrderStatus);
+        return BeanCopyUtils.copy(shopOrderStatus, ShopOrderStatusVO.class);
     }
 }

@@ -34,13 +34,10 @@ export type ShopUserForm = {
     status?: number;
 };
 
-// list或detail返回结构
-export type ShopUserRow = {
+// list台账返回结构（不包含用户密码、真实姓名、性别）
+export type ShopUserListRow = {
     uid?: number;
     account?: string;
-    password?: string;
-    realName?: string;
-    sex?: number;
     birthday?: string;
     cardId?: string;
     nickname?: string;
@@ -57,5 +54,12 @@ export type ShopUserRow = {
     createTime?: string;
     updateTime?: string;
     status?: number;
+};
+
+// detail返回结构
+export type ShopUserRow = ShopUserListRow & {
+    password?: string;
+    realName?: string;
+    sex?: number;
 };
 

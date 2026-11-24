@@ -35,9 +35,9 @@ public class ShopUserAddressServiceImpl extends ServiceImpl<ShopUserAddressMappe
 
     @Override
     public void create(ShopUserAddressDTO.Create dto) {
-        ShopUserAddress lbUserAddress = buildCreateAddress(dto);
-        save(lbUserAddress);
-        normalizeDefaultAddress(dto.getUid(), lbUserAddress.getId(), dto.getIsDefault());
+        ShopUserAddress shopUserAddress = buildCreateAddress(dto);
+        save(shopUserAddress);
+        normalizeDefaultAddress(dto.getUid(), shopUserAddress.getId(), dto.getIsDefault());
     }
 
     @Override
@@ -46,9 +46,9 @@ public class ShopUserAddressServiceImpl extends ServiceImpl<ShopUserAddressMappe
         CommonResponseEnum.INVALID_ID.assertNull(currentAddress);
         CommonResponseEnum.INVALID.message("无权操作该地址").assertTrue(!Objects.equals(currentAddress.getUid(), dto.getUid()));
 
-        ShopUserAddress lbUserAddress = buildUpdateAddress(dto);
-        saveOrUpdate(lbUserAddress);
-        normalizeDefaultAddress(dto.getUid(), lbUserAddress.getId(), dto.getIsDefault());
+        ShopUserAddress shopUserAddress = buildUpdateAddress(dto);
+        saveOrUpdate(shopUserAddress);
+        normalizeDefaultAddress(dto.getUid(), shopUserAddress.getId(), dto.getIsDefault());
     }
 
     @Override
@@ -89,9 +89,9 @@ public class ShopUserAddressServiceImpl extends ServiceImpl<ShopUserAddressMappe
 
     @Override
     public ShopUserAddressVO detail(Object id) {
-        ShopUserAddress lbUserAddress = getById((Serializable) id);
-        CommonResponseEnum.INVALID_ID.assertNull(lbUserAddress);
-        return BeanCopyUtils.copy(lbUserAddress, ShopUserAddressVO.class);
+        ShopUserAddress shopUserAddress = getById((Serializable) id);
+        CommonResponseEnum.INVALID_ID.assertNull(shopUserAddress);
+        return BeanCopyUtils.copy(shopUserAddress, ShopUserAddressVO.class);
     }
 
     private ShopUserAddress buildCreateAddress(ShopUserAddressDTO.Create dto) {

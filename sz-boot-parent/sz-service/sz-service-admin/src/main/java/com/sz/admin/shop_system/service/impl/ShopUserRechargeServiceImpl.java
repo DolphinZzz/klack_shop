@@ -53,14 +53,14 @@ public class ShopUserRechargeServiceImpl extends ServiceImpl<ShopUserRechargeMap
 
     private static final Set<String> SUPPORTED_RECHARGE_TYPES = new HashSet<>(Arrays.asList("yue", "wxpay", "alipay"));
 
-    private final ShopUserService lbUserService;
-    private final ShopUserBillService lbUserBillService;
-    private final ShopUserRechargeActivityMapper lbUserRechargeActivityMapper;
+    private final ShopUserService shopUserService;
+    private final ShopUserBillService shopUserBillService;
+    private final ShopUserRechargeActivityMapper shopUserRechargeActivityMapper;
 
     @Override
     public void create(ShopUserRechargeDTO.Create dto) {
-        ShopUserRecharge lbUserRecharge = BeanCopyUtils.copy(dto, ShopUserRecharge.class);
-        save(lbUserRecharge);
+        ShopUserRecharge shopUserRecharge = BeanCopyUtils.copy(dto, ShopUserRecharge.class);
+        save(shopUserRecharge);
     }
 
     @Override
@@ -75,11 +75,11 @@ public class ShopUserRechargeServiceImpl extends ServiceImpl<ShopUserRechargeMap
         RechargePlan plan = resolveRechargePlan(dto.getActivityId(), inputPrice);
 
         long userId = StpUserUtil.getLoginIdAsLong();
-        ShopUser lbUser = lbUserService.getById(userId);
-        CommonResponseEnum.INVALID_USER.assertNull(lbUser);
+        ShopUser shopUser = shopUserService.getById(userId);
+        CommonResponseEnum.INVALID_USER.assertNull(shopUser);
 
         BigDecimal totalIncome = plan.rechargePrice().add(plan.givePrice());
-        BigDecimal currentMoney = lbUser.getNowMoney() == null ? BigDecimal.ZERO : lbUser.getNowMoney();
+        BigDecimal currentMoney = shopUser.getNowMoney() == null ? BigDecimal.ZERO : shopUser.getNowMoney();
         BigDecimal newMoney = currentMoney.add(totalIncome);
 
         persistUserBalance(userId, newMoney);
@@ -92,8 +92,8 @@ public class ShopUserRechargeServiceImpl extends ServiceImpl<ShopUserRechargeMap
     @Override
     public void update(ShopUserRechargeDTO.Update dto) {
         CommonResponseEnum.INVALID_ID.assertTrue(dto.getId() == null || mapper.countById(dto.getId()) <= 0);
-        ShopUserRecharge lbUserRecharge = BeanCopyUtils.copy(dto, ShopUserRecharge.class);
-        saveOrUpdate(lbUserRecharge);
+        ShopUserRecharge shopUserRecharge = BeanCopyUtils.copy(dto, ShopUserRecharge.class);
+        saveOrUpdate(shopUserRecharge);
     }
 
     @Override
@@ -127,9 +127,9 @@ public class ShopUserRechargeServiceImpl extends ServiceImpl<ShopUserRechargeMap
 
     @Override
     public ShopUserRechargeVO detail(Object id) {
-        ShopUserRecharge lbUserRecharge = getById((Serializable) id);
-        CommonResponseEnum.INVALID_ID.assertNull(lbUserRecharge);
-        return BeanCopyUtils.copy(lbUserRecharge, ShopUserRechargeVO.class);
+        ShopUserRecharge shopUserRecharge = getById((Serializable) id);
+        CommonResponseEnum.INVALID_ID.assertNull(shopUserRecharge);
+        return BeanCopyUtils.copy(shopUserRecharge, ShopUserRechargeVO.class);
     }
 
     @SneakyThrows
@@ -177,7 +177,7 @@ public class ShopUserRechargeServiceImpl extends ServiceImpl<ShopUserRechargeMap
         }
         CommonResponseEnum.INVALID.message("充值活动ID格式错误").assertNull(activityId);
 
-        ShopUserRechargeActivity activity = lbUserRechargeActivityMapper.selectActiveById(activityId);
+        ShopUserRechargeActivity activity = shopUserRechargeActivityMapper.selectActiveById(activityId);
         CommonResponseEnum.INVALID.message("充值活动不存在").assertNull(activity);
         CommonResponseEnum.INVALID.message("充值活动套餐金额不正确")
                 .assertTrue(activity.getPrice() == null || activity.getPrice().compareTo(inputPrice) != 0);
@@ -190,7 +190,7 @@ public class ShopUserRechargeServiceImpl extends ServiceImpl<ShopUserRechargeMap
         ShopUser updateUser = new ShopUser();
         updateUser.setUid(userId);
         updateUser.setNowMoney(newMoney);
-        boolean userUpdated = lbUserService.updateById(updateUser);
+        boolean userUpdated = shopUserService.updateById(updateUser);
         CommonResponseEnum.INVALID.message("用户余额更新失败，请重试").assertTrue(!userUpdated);
     }
 
@@ -222,7 +222,7 @@ public class ShopUserRechargeServiceImpl extends ServiceImpl<ShopUserRechargeMap
     }
 
     private void persistRechargeBill(ShopUserBill userBill) {
-        boolean billSaved = lbUserBillService.save(userBill);
+        boolean billSaved = shopUserBillService.save(userBill);
         CommonResponseEnum.INVALID.message("写入充值账单失败，请重试").assertTrue(!billSaved);
     }
 

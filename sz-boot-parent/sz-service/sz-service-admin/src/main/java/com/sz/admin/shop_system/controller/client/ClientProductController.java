@@ -26,13 +26,13 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ClientProductController {
 
-    private final ShopProductService lbProductService;
+    private final ShopProductService shopProductService;
 
     @SaIgnore
     @Operation(summary = "根据分类id-查询商品列表-用户端")
     @PostMapping("/list")
     public ApiResult<PageResult<ProductResponse>> getProductList(@RequestBody ShopProductDTO.FrontList request) {
-        return ApiResult.success(lbProductService.getCategoryProductList(request));
+        return ApiResult.success(shopProductService.getCategoryProductList(request));
     }
 
     @SaIgnore
@@ -40,7 +40,7 @@ public class ClientProductController {
     @GetMapping("/detail/{id}")
     public ApiResult<ProductDetailResponse> getDetail(@PathVariable Integer id,
                                                       @RequestParam(value = "type", defaultValue = "normal") String type) {
-        return ApiResult.success(lbProductService.getDetail(id, type));
+        return ApiResult.success(shopProductService.getDetail(id, type));
     }
 
     @SaIgnore
@@ -48,6 +48,6 @@ public class ClientProductController {
     @GetMapping("/comment/{productId}")
     public ApiResult<PageResult<ShopFrontProductCommentVO>> getFrontCommentPage(@PathVariable Integer productId,
                                                                               ShopProductDTO.FrontCommentPage dto) {
-        return ApiPageResult.success(lbProductService.getFrontCommentPage(productId, dto));
+        return ApiPageResult.success(shopProductService.getFrontCommentPage(productId, dto));
     }
 }

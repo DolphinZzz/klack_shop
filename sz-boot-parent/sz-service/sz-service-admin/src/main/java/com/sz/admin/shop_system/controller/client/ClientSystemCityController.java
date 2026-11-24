@@ -23,7 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientSystemCityController {
 
-    private final ShopSystemCityService lbSystemCityService;
+    private final ShopSystemCityService shopSystemCityService;
 
     @SaIgnore
     @Operation(summary = "按父级和区域类型查询城市字典")
@@ -31,6 +31,6 @@ public class ClientSystemCityController {
     public ApiResult<List<ShopSystemCityVO>> list(
             @RequestParam(required = false) Integer parentId,
             @RequestParam Integer regionType) {
-        return ApiResult.success(lbSystemCityService.listByParentAndRegionType(parentId, regionType));
+        return ApiResult.success(shopSystemCityService.listByParentAndRegionType(parentId, regionType));
     }
 }

@@ -33,15 +33,15 @@ public class ShopUserRechargeActivityServiceImpl extends ServiceImpl<ShopUserRec
 
     @Override
     public void create(ShopUserRechargeActivityDTO.Create dto) {
-        ShopUserRechargeActivity lbUserRechargeActivity = BeanCopyUtils.copy(dto, ShopUserRechargeActivity.class);
-        save(lbUserRechargeActivity);
+        ShopUserRechargeActivity shopUserRechargeActivity = BeanCopyUtils.copy(dto, ShopUserRechargeActivity.class);
+        save(shopUserRechargeActivity);
     }
 
     @Override
     public void update(ShopUserRechargeActivityDTO.Update dto) {
         CommonResponseEnum.INVALID_ID.assertTrue(dto.getId() == null || mapper.countById(dto.getId()) <= 0);
-        ShopUserRechargeActivity lbUserRechargeActivity = BeanCopyUtils.copy(dto, ShopUserRechargeActivity.class);
-        saveOrUpdate(lbUserRechargeActivity);
+        ShopUserRechargeActivity shopUserRechargeActivity = BeanCopyUtils.copy(dto, ShopUserRechargeActivity.class);
+        saveOrUpdate(shopUserRechargeActivity);
     }
 
     @Override
@@ -80,8 +80,8 @@ public class ShopUserRechargeActivityServiceImpl extends ServiceImpl<ShopUserRec
 
     @Override
     public ShopUserRechargeActivityVO detail(Object id) {
-        ShopUserRechargeActivity lbUserRechargeActivity = getById((Serializable) id);
-        CommonResponseEnum.INVALID_ID.assertNull(lbUserRechargeActivity);
-        return BeanCopyUtils.copy(lbUserRechargeActivity, ShopUserRechargeActivityVO.class);
+        ShopUserRechargeActivity shopUserRechargeActivity = getById((Serializable) id);
+        CommonResponseEnum.INVALID_ID.assertNull(shopUserRechargeActivity);
+        return BeanCopyUtils.copy(shopUserRechargeActivity, ShopUserRechargeActivityVO.class);
     }
 }

@@ -2,6 +2,7 @@ package com.sz.admin.shop_system.controller.server;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.sz.admin.shop_system.pojo.dto.ShopUserDTO;
+import com.sz.admin.shop_system.pojo.vo.ShopUserListVO;
 import com.sz.admin.shop_system.pojo.vo.ShopUserVO;
 import com.sz.admin.shop_system.service.ShopUserService;
 import com.sz.core.common.entity.ApiPageResult;
@@ -30,60 +31,60 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerUserController {
 
-    private final ShopUserService lbUserService;
+    private final ShopUserService shopUserService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.user.create")
+    @SaCheckPermission(value = "shop.user.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopUserDTO.Create dto) {
-        lbUserService.create(dto);
+        shopUserService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.user.update")
+    @SaCheckPermission(value = "shop.user.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopUserDTO.Update dto) {
-        lbUserService.update(dto);
+        shopUserService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.user.remove")
+    @SaCheckPermission(value = "shop.user.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbUserService.remove(dto);
+        shopUserService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.user.query_table")
+    @SaCheckPermission(value = "shop.user.query_table")
     @GetMapping
-    public ApiResult<PageResult<ShopUserVO>> list(ShopUserDTO.ListQuery dto) {
-        return ApiPageResult.success(lbUserService.page(dto));
+    public ApiResult<PageResult<ShopUserListVO>> list(ShopUserDTO.ListQuery dto) {
+        return ApiPageResult.success(shopUserService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.user.query_table")
+    @SaCheckPermission(value = "shop.user.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopUserVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbUserService.detail(id));
+        return ApiResult.success(shopUserService.detail(id));
     }
 
     @Operation(summary = "导入")
     @Parameters({
             @Parameter(name = "file", description = "上传文件", schema = @Schema(type = "string", format = "binary"), required = true),
     })
-    @SaCheckPermission(value = "lb.user.import")
+    @SaCheckPermission(value = "shop.user.import")
     @PostMapping("/import")
     public void importExcel(@ModelAttribute ImportExcelDTO dto) {
-        lbUserService.importExcel(dto);
+        shopUserService.importExcel(dto);
     }
 
     @Operation(summary = "导出")
-    @SaCheckPermission(value = "lb.user.export")
+    @SaCheckPermission(value = "shop.user.export")
     @PostMapping("/export")
     public void exportExcel(@RequestBody ShopUserDTO.ListQuery dto, HttpServletResponse response) {
-        lbUserService.exportExcel(dto, response);
+        shopUserService.exportExcel(dto, response);
     }
 }

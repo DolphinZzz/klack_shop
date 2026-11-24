@@ -8,6 +8,7 @@ import com.sz.core.common.entity.SelectIdsDTO;
 import com.sz.core.common.entity.PageResult;
 import java.util.List;
 import com.sz.admin.shop_system.pojo.vo.ShopFrontUserProfileVO;
+import com.sz.admin.shop_system.pojo.vo.ShopUserListVO;
 import com.sz.admin.shop_system.pojo.vo.ShopUserVO;
 import com.sz.core.common.entity.ImportExcelDTO;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,9 +27,9 @@ public interface ShopUserService extends IService<ShopUser> {
 
     void update(ShopUserDTO.Update dto);
 
-    PageResult<ShopUserVO> page(ShopUserDTO.ListQuery dto);
+    PageResult<ShopUserListVO> page(ShopUserDTO.ListQuery dto);
 
-    List<ShopUserVO> list(ShopUserDTO.ListQuery dto);
+    List<ShopUserListVO> list(ShopUserDTO.ListQuery dto);
 
     void remove(SelectIdsDTO dto);
 

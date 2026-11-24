@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-import { lbUserLoginApi, lbUserRegisterApi, type LbUserLoginInfo } from '@/api';
+import { shopUserLoginApi, shopUserRegisterApi, type ShopUserLoginInfo } from '@/api';
 import { useAuthStore } from '@/stores/modules/auth';
 import { useCartStore } from '@/stores/modules/cart';
 
@@ -287,7 +287,7 @@ function sanitizeOptional(value: string) {
   return next ? next : undefined;
 }
 
-function syncAuthState(user: LbUserLoginInfo) {
+function syncAuthState(user: ShopUserLoginInfo) {
   authStore.updateToken(user.accessToken);
   authStore.updateUserInfo({
     uid: user.uid,
@@ -306,7 +306,7 @@ function syncAuthState(user: LbUserLoginInfo) {
   });
 }
 
-async function finishLogin(user: LbUserLoginInfo, message: string) {
+async function finishLogin(user: ShopUserLoginInfo, message: string) {
   syncAuthState(user);
   await cartStore.fetchCount();
   ElMessage.success(message);
@@ -322,7 +322,7 @@ async function handleLoginSubmit() {
 
   loginLoading.value = true;
   try {
-    const response = await lbUserLoginApi({
+    const response = await shopUserLoginApi({
       accountOrPhone: loginForm.accountOrPhone.trim(),
       password: loginForm.password
     });
@@ -349,8 +349,8 @@ async function handleRegisterSubmit() {
   };
 
   try {
-    await lbUserRegisterApi(payload);
-    const loginResponse = await lbUserLoginApi({
+    await shopUserRegisterApi(payload);
+    const loginResponse = await shopUserLoginApi({
       accountOrPhone: payload.account,
       password: payload.password
     });

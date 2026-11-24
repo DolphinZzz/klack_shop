@@ -26,12 +26,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientHomeBannerController {
 
-    private final ShopHomeBannerService lbHomeBannerService;
+    private final ShopHomeBannerService shopHomeBannerService;
 
     @SaIgnore
     @Operation(summary = "首页轮播列表")
     @GetMapping("/index")
     public ApiResult<List<ShopHomeBannerVO>> frontList(@RequestParam(value = "size", defaultValue = "5") Integer size) {
-        return ApiResult.success(lbHomeBannerService.frontList(size));
+        return ApiResult.success(shopHomeBannerService.frontList(size));
     }
 }

@@ -42,11 +42,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ShopFlashSaleServiceImpl extends ServiceImpl<ShopFlashSaleMapper, ShopFlashSale> implements ShopFlashSaleService {
 
-    private final ShopProductMapper lbProductMapper;
-    private final ShopProductAttrMapper lbProductAttrMapper;
+    private final ShopProductMapper shopProductMapper;
+    private final ShopProductAttrMapper shopProductAttrMapper;
     private final ShopProductAttrService productAttrService;
     private final ShopProductAttrValueService productAttrValueService;
-    private final ShopProductAttrValueMapper lbProductAttrValueMapper;
+    private final ShopProductAttrValueMapper shopProductAttrValueMapper;
 
     @Override
     public PageResult<ShopFlashSaleVO> page(ShopFlashSaleDTO.ListQuery dto) {
@@ -62,7 +62,7 @@ public class ShopFlashSaleServiceImpl extends ServiceImpl<ShopFlashSaleMapper, S
     @Override
     public ShopFlashSaleDetailVO detail(Long productId) {
         CommonResponseEnum.INVALID_ID.assertNull(productId);
-        ShopProduct product = lbProductMapper.selectOneById(productId);
+        ShopProduct product = shopProductMapper.selectOneById(productId);
         CommonResponseEnum.INVALID.message("商品不存在").assertNull(product);
 
         ShopFlashSale existing = mapper.selectByProductId(productId);
@@ -77,7 +77,7 @@ public class ShopFlashSaleServiceImpl extends ServiceImpl<ShopFlashSaleMapper, S
         CommonResponseEnum.INVALID.message("营销配置不能为空").assertNull(dto);
         CommonResponseEnum.INVALID_ID.assertNull(dto.getProductId());
 
-        ShopProduct product = lbProductMapper.selectOneById(dto.getProductId());
+        ShopProduct product = shopProductMapper.selectOneById(dto.getProductId());
         CommonResponseEnum.INVALID.message("商品不存在").assertNull(product);
 
         updateProductMarketingFields(product, dto);
@@ -174,7 +174,7 @@ public class ShopFlashSaleServiceImpl extends ServiceImpl<ShopFlashSaleMapper, S
         if (dto.getActivity() != null) {
             productUpdate.setActivity(dto.getActivity());
         }
-        lbProductMapper.update(productUpdate);
+        shopProductMapper.update(productUpdate);
     }
 
     private boolean needsFlashSaleConfig(ShopFlashSaleDTO.Update dto) {
@@ -260,14 +260,14 @@ public class ShopFlashSaleServiceImpl extends ServiceImpl<ShopFlashSaleMapper, S
             ShopProductAttrValue update = new ShopProductAttrValue();
             update.setId(sku.getId());
             update.setFlashPrice(skuFlashPrice);
-            lbProductAttrValueMapper.update(update);
+            shopProductAttrValueMapper.update(update);
         }
     }
 
     private List<ShopProductAttr> loadProductAttrs(Long productId) {
         List<ShopProductAttr> productAttrs = productAttrService.getListByProductIdAndType(productId, Constant.PRODUCT_TYPE_NORMAL);
         if (productAttrs == null || productAttrs.isEmpty()) {
-            productAttrs = lbProductAttrMapper.selectByProductId(productId);
+            productAttrs = shopProductAttrMapper.selectByProductId(productId);
         }
         return productAttrs == null ? new ArrayList<>() : productAttrs;
     }

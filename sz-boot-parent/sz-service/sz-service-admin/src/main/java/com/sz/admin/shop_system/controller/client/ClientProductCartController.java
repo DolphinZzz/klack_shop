@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ClientProductCartController {
 
-    private final ShopProductCartService lbProductCartService;
+    private final ShopProductCartService shopProductCartService;
 
     @Operation(summary = "新增购物车-用户端")
     @SaCheckLogin(type = "shop_user")
@@ -35,7 +35,7 @@ public class ClientProductCartController {
     public ApiResult<Void> create(@RequestBody ShopProductCartDTO.Create dto) {
         long userId = StpUserUtil.getLoginIdAsLong();
         CommonResponseEnum.INVALID_TOKEN.assertNull(userId);
-        lbProductCartService.create(dto, userId);
+        shopProductCartService.create(dto, userId);
         return ApiResult.success();
     }
 
@@ -45,7 +45,7 @@ public class ClientProductCartController {
     public ApiResult<Void> update(@RequestBody ShopProductCartDTO.Update dto) {
         long userId = StpUserUtil.getLoginIdAsLong();
         CommonResponseEnum.INVALID_TOKEN.assertNull(userId);
-        lbProductCartService.update(dto, userId);
+        shopProductCartService.update(dto, userId);
         return ApiResult.success();
     }
 
@@ -55,7 +55,7 @@ public class ClientProductCartController {
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
         long userId = StpUserUtil.getLoginIdAsLong();
         CommonResponseEnum.INVALID_TOKEN.assertNull(userId);
-        lbProductCartService.remove(dto, userId);
+        shopProductCartService.remove(dto, userId);
         return ApiResult.success();
     }
 
@@ -63,7 +63,7 @@ public class ClientProductCartController {
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/list")
     public ApiResult<PageResult<ShopProductCartVO>> list(ShopProductCartDTO.ListQuery dto) {
-        return ApiPageResult.success(lbProductCartService.page(dto));
+        return ApiPageResult.success(shopProductCartService.page(dto));
     }
 
     @Operation(summary = "购物车商品数量-用户端")
@@ -72,6 +72,6 @@ public class ClientProductCartController {
     public ApiResult<Integer> count() {
         long userId = StpUserUtil.getLoginIdAsLong();
         CommonResponseEnum.INVALID_TOKEN.assertNull(userId);
-        return ApiResult.success(lbProductCartService.count(userId));
+        return ApiResult.success(shopProductCartService.count(userId));
     }
 }

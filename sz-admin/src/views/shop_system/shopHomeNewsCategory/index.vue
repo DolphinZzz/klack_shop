@@ -12,14 +12,14 @@
       <template #tableHeader="scope">
         <el-button
           type="primary"
-          v-auth="'lb.home.news.category.create'"
+          v-auth="'shop.home.news.category.create'"
           :icon="CirclePlus"
           @click="openAddEdit('新增资讯分类')"
         >
           新增
         </el-button>
         <el-button
-          v-auth="'lb.home.news.category.remove'"
+          v-auth="'shop.home.news.category.remove'"
           type="danger"
           :icon="Delete"
           plain
@@ -31,7 +31,7 @@
       </template>
       <template #operation="{ row }">
         <el-button
-          v-auth="'lb.home.news.category.update'"
+          v-auth="'shop.home.news.category.update'"
           type="primary"
           link
           :icon="EditPen"
@@ -40,7 +40,7 @@
           编辑
         </el-button>
         <el-button
-          v-auth="'lb.home.news.category.remove'"
+          v-auth="'shop.home.news.category.remove'"
           type="primary"
           link
           :icon="Delete"

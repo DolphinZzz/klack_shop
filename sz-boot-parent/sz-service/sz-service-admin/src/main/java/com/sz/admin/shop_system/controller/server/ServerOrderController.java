@@ -26,50 +26,50 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerOrderController {
 
-    private final ShopOrderService lbOrderService;
+    private final ShopOrderService shopOrderService;
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.order.update")
+    @SaCheckPermission(value = "shop.order.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopOrderDTO.Update dto) {
-        lbOrderService.update(dto);
+        shopOrderService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.order.remove")
+    @SaCheckPermission(value = "shop.order.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbOrderService.remove(dto);
+        shopOrderService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.order.query_table")
+    @SaCheckPermission(value = "shop.order.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopOrderVO>> list(ShopOrderDTO.ListQuery dto) {
-        return ApiPageResult.success(lbOrderService.page(dto));
+        return ApiPageResult.success(shopOrderService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.order.query_table")
+    @SaCheckPermission(value = "shop.order.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopOrderVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbOrderService.detail(id));
+        return ApiResult.success(shopOrderService.detail(id));
     }
 
     @Operation(summary = "根据订单号查询订单详情-管理端")
-    @SaCheckPermission(value = "lb.order.query_table")
+    @SaCheckPermission(value = "shop.order.query_table")
     @GetMapping("/detail/{orderNo}")
     public ApiResult<ShopOrderAdminDetailVO> detail(@PathVariable String orderNo) {
-        return ApiResult.success(lbOrderService.adminDetail(orderNo));
+        return ApiResult.success(shopOrderService.adminDetail(orderNo));
     }
 
     @Operation(summary = "订单发货-管理端")
-    @SaCheckPermission(value = "lb.order.update")
+    @SaCheckPermission(value = "shop.order.update")
     @PostMapping("/deliver")
     public ApiResult<Void> deliver(@RequestBody ShopOrderDTO.Deliver dto) {
-        lbOrderService.deliver(dto);
+        shopOrderService.deliver(dto);
         return ApiResult.success();
     }
 }

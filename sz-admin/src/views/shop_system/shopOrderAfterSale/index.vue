@@ -19,10 +19,10 @@
       </template>
 
       <template #operation="{ row }">
-        <el-button v-auth="'lb.order.after.sale.query_table'" type="primary" link :icon="View" @click="openDetail(row)">详情</el-button>
+        <el-button v-auth="'shop.order.after.sale.query_table'" type="primary" link :icon="View" @click="openDetail(row)">详情</el-button>
         <el-button
           v-if="Number(row.status) === 0"
-          v-auth="'lb.order.after.sale.update'"
+          v-auth="'shop.order.after.sale.update'"
           type="primary"
           link
           :icon="Select"
@@ -32,7 +32,7 @@
         </el-button>
         <el-button
           v-if="Number(row.status) === 2"
-          v-auth="'lb.order.after.sale.update'"
+          v-auth="'shop.order.after.sale.update'"
           type="primary"
           link
           :icon="Box"

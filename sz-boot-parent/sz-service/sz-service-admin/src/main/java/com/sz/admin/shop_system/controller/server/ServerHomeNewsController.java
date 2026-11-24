@@ -25,43 +25,43 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ServerHomeNewsController {
 
-    private final ShopHomeNewsService lbHomeNewsService;
+    private final ShopHomeNewsService shopHomeNewsService;
 
     @Operation(summary = "新增")
-    @SaCheckPermission(value = "lb.home.news.create")
+    @SaCheckPermission(value = "shop.home.news.create")
     @PostMapping
     public ApiResult<Void> create(@RequestBody ShopHomeNewsDTO.Create dto) {
-        lbHomeNewsService.create(dto);
+        shopHomeNewsService.create(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "修改")
-    @SaCheckPermission(value = "lb.home.news.update")
+    @SaCheckPermission(value = "shop.home.news.update")
     @PutMapping
     public ApiResult<Void> update(@RequestBody ShopHomeNewsDTO.Update dto) {
-        lbHomeNewsService.update(dto);
+        shopHomeNewsService.update(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "删除")
-    @SaCheckPermission(value = "lb.home.news.remove")
+    @SaCheckPermission(value = "shop.home.news.remove")
     @DeleteMapping
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbHomeNewsService.remove(dto);
+        shopHomeNewsService.remove(dto);
         return ApiResult.success();
     }
 
     @Operation(summary = "列表查询")
-    @SaCheckPermission(value = "lb.home.news.query_table")
+    @SaCheckPermission(value = "shop.home.news.query_table")
     @GetMapping
     public ApiResult<PageResult<ShopHomeNewsVO>> list(ShopHomeNewsDTO.ListQuery dto) {
-        return ApiPageResult.success(lbHomeNewsService.page(dto));
+        return ApiPageResult.success(shopHomeNewsService.page(dto));
     }
 
     @Operation(summary = "详情")
-    @SaCheckPermission(value = "lb.home.news.query_table")
+    @SaCheckPermission(value = "shop.home.news.query_table")
     @GetMapping("/{id}")
     public ApiResult<ShopHomeNewsVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbHomeNewsService.detail(id));
+        return ApiResult.success(shopHomeNewsService.detail(id));
     }
 }

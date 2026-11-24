@@ -26,14 +26,14 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ClientUserAddressController {
 
-    private final ShopUserAddressService lbUserAddressService;
+    private final ShopUserAddressService shopUserAddressService;
 
     @Operation(summary = "新增用户地址-用户端")
     @SaCheckLogin(type = "shop_user")
     @PostMapping("/address/add")
     public ApiResult<Void> create(@RequestBody ShopUserAddressDTO.Create dto) {
         dto.setUid(StpUserUtil.getLoginIdAsLong());
-        lbUserAddressService.create(dto);
+        shopUserAddressService.create(dto);
         return ApiResult.success();
     }
 
@@ -42,7 +42,7 @@ public class ClientUserAddressController {
     @PutMapping("/address/edit")
     public ApiResult<Void> update(@RequestBody ShopUserAddressDTO.Update dto) {
         dto.setUid(StpUserUtil.getLoginIdAsLong());
-        lbUserAddressService.update(dto);
+        shopUserAddressService.update(dto);
         return ApiResult.success();
     }
 
@@ -50,7 +50,7 @@ public class ClientUserAddressController {
     @SaCheckLogin(type = "shop_user")
     @DeleteMapping("/address/del")
     public ApiResult<Void> remove(@RequestBody SelectIdsDTO dto) {
-        lbUserAddressService.remove(dto, StpUserUtil.getLoginIdAsLong());
+        shopUserAddressService.remove(dto, StpUserUtil.getLoginIdAsLong());
         return ApiResult.success();
     }
 
@@ -59,13 +59,13 @@ public class ClientUserAddressController {
     @GetMapping("/address/list")
     public ApiResult<PageResult<ShopUserAddressVO>> list(ShopUserAddressDTO.ListQuery dto) {
         dto.setUid(StpUserUtil.getLoginIdAsLong());
-        return ApiPageResult.success(lbUserAddressService.page(dto));
+        return ApiPageResult.success(shopUserAddressService.page(dto));
     }
 
     @Operation(summary = "地址详情-用户端")
     @SaCheckLogin(type = "shop_user")
     @GetMapping("/{id}")
     public ApiResult<ShopUserAddressVO> detail(@PathVariable Object id) {
-        return ApiResult.success(lbUserAddressService.detail(id));
+        return ApiResult.success(shopUserAddressService.detail(id));
     }
 }
