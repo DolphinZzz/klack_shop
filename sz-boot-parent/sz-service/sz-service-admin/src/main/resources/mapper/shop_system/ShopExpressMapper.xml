@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopExpressMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopExpress">
+        <id column="id" property="id"/>
+        <result column="code" property="code" />
+        <result column="express_name" property="expressName" />
+        <result column="sort" property="sort" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="is_del" property="isDel" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, code, express_name, sort, create_time, update_time, is_del
+    </sql>
+
+    <select id="selectExpressList" resultType="com.sz.admin.shop_system.pojo.vo.ShopExpressVO">
+        SELECT id, code, express_name, sort, create_time, update_time
+        FROM shop_express
+        <where>
+            <if test="query != null and query.code != null and query.code.trim() != ''">
+                AND code LIKE CONCAT('%', #{query.code}, '%')
+            </if>
+            <if test="query != null and query.expressName != null and query.expressName.trim() != ''">
+                AND express_name LIKE CONCAT('%', #{query.expressName}, '%')
+            </if>
+        </where>
+    </select>
+
+</mapper>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopProductCartMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopProductCart">
+        <id column="id" property="id"/>
+        <result column="uid" property="uid"/>
+        <result column="product_id" property="productId"/>
+        <result column="sku_id" property="skuId"/>
+        <result column="cart_num" property="cartNum"/>
+        <result column="seckill_id" property="seckillId"/>
+        <result column="bargain_id" property="bargainId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="status" property="status"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, uid, product_id, sku_id, cart_num, seckill_id, bargain_id, create_time, update_time, status
+    </sql>
+
+    <select id="selectByUidAndProductAndSku" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product_cart
+        WHERE uid = #{uid}
+          AND product_id = #{productId}
+          AND sku_id = #{skuId}
+        LIMIT 1
+    </select>
+
+    <select id="selectActiveByIdAndUid" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product_cart
+        WHERE id = #{id}
+          AND uid = #{uid}
+          AND status = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectCartPageList" resultType="com.sz.admin.shop_system.pojo.vo.ShopProductCartVO">
+        SELECT
+            t1.id,
+            t1.product_id,
+            t1.sku_id,
+            t1.cart_num,
+            t2.vip_price,
+            t2.product_name,
+            t2.image,
+            t2.price,
+            t3.sku,
+            t3.stock
+        FROM shop_product_cart t1
+        LEFT JOIN shop_product t2 ON t2.id = t1.product_id AND t2.is_del = 0
+        LEFT JOIN shop_product_attr_value t3 ON t1.sku_id = t3.id AND t3.is_del = 0
+        WHERE t1.uid = #{uid}
+          AND IFNULL(t1.status, 0) = 0
+        <if test="status != null">
+            AND t1.status = #{status}
+        </if>
+    </select>
+
+    <update id="markRemovedByIdsAndUid">
+        UPDATE shop_product_cart
+        SET status = 1,
+            update_time = NOW()
+        WHERE uid = #{uid}
+          AND status = 0
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="sumActiveCartNumByUid" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(cart_num), 0)
+        FROM shop_product_cart
+        WHERE uid = #{uid}
+          AND status = 0
+    </select>
+
+    <select id="selectByIds" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product_cart
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectByUidAndIds" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product_cart
+        WHERE uid = #{uid}
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+</mapper>

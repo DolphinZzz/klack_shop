@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopUserAddressMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopUserAddress">
+        <id column="id" property="id"/>
+        <result column="uid" property="uid" />
+        <result column="real_name" property="realName" />
+        <result column="phone" property="phone" />
+        <result column="province" property="province" />
+        <result column="province_id" property="provinceId" />
+        <result column="city" property="city" />
+        <result column="city_id" property="cityId" />
+        <result column="district" property="district" />
+        <result column="district_id" property="districtId" />
+        <result column="detail" property="detail" />
+        <result column="post_code" property="postCode" />
+        <result column="is_default" property="isDefault" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="deleted" property="deleted" />
+    </resultMap>
+
+    <resultMap id="ShopUserAddressVOResultMap" type="com.sz.admin.shop_system.pojo.vo.ShopUserAddressVO">
+        <id column="id" property="id"/>
+        <result column="uid" property="uid" />
+        <result column="real_name" property="realName" />
+        <result column="phone" property="phone" />
+        <result column="province" property="province" />
+        <result column="province_id" property="provinceId" />
+        <result column="city" property="city" />
+        <result column="city_id" property="cityId" />
+        <result column="district" property="district" />
+        <result column="district_id" property="districtId" />
+        <result column="detail" property="detail" />
+        <result column="post_code" property="postCode" />
+        <result column="is_default" property="isDefault" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, uid, real_name, phone, province, province_id, city, city_id, district, district_id, detail, post_code, is_default, create_time, update_time, deleted
+    </sql>
+
+    <select id="selectAddressList" resultMap="ShopUserAddressVOResultMap">
+        SELECT id, uid, real_name, phone, province, province_id, city, city_id, district, district_id, detail, post_code, is_default
+        FROM shop_user_address
+        <where>
+            <if test="dto != null">
+                <if test="dto.uid != null">
+                    AND uid = #{dto.uid}
+                </if>
+                <if test="dto.realName != null and dto.realName.trim() != ''">
+                    AND real_name LIKE CONCAT('%', #{dto.realName}, '%')
+                </if>
+                <if test="dto.phone != null and dto.phone.trim() != ''">
+                    AND phone = #{dto.phone}
+                </if>
+                <if test="dto.province != null and dto.province.trim() != ''">
+                    AND province = #{dto.province}
+                </if>
+                <if test="dto.city != null and dto.city.trim() != ''">
+                    AND city = #{dto.city}
+                </if>
+                <if test="dto.district != null and dto.district.trim() != ''">
+                    AND district = #{dto.district}
+                </if>
+                <if test="dto.detail != null and dto.detail.trim() != ''">
+                    AND detail = #{dto.detail}
+                </if>
+                <if test="dto.postCode != null and dto.postCode.trim() != ''">
+                    AND post_code = #{dto.postCode}
+                </if>
+            </if>
+        </where>
+    </select>
+
+    <select id="selectIdsByIdsAndUid" resultType="java.lang.Long">
+        SELECT id
+        FROM shop_user_address
+        WHERE uid = #{uid}
+          AND id IN
+          <foreach collection="ids" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+    </select>
+
+    <select id="selectActiveByUid" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_user_address
+        WHERE uid = #{uid}
+          AND deleted = 0
+    </select>
+
+    <select id="selectDefaultByUid" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_user_address
+        WHERE uid = #{uid}
+          AND deleted = 0
+          AND is_default = 1
+        LIMIT 1
+    </select>
+
+    <select id="selectActiveByIdAndUid" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_user_address
+        WHERE id = #{id}
+          AND uid = #{uid}
+          AND deleted = 0
+        LIMIT 1
+    </select>
+
+</mapper>

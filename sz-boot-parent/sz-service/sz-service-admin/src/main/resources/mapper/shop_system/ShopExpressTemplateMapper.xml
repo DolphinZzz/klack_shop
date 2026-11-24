@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopExpressTemplateMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopExpressTemplate">
+        <id column="id" property="id"/>
+        <result column="name" property="name" />
+        <result column="express_id" property="expressId" />
+        <result column="express_price" property="expressPrice" />
+        <result column="is_del" property="isDel" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, name, express_id, express_price, is_del
+    </sql>
+
+    <select id="selectExpressTemplatePageList" resultType="com.sz.admin.shop_system.pojo.vo.ShopExpressTemplateVO">
+        SELECT
+            t.id,
+            t.name,
+            t.express_id,
+            t.express_price,
+            e.code,
+            e.express_name,
+            e.sort,
+            e.create_time,
+            e.update_time
+        FROM shop_express_template t
+        LEFT JOIN shop_express e ON t.express_id = e.id
+        WHERE t.is_del = 0
+        <if test="query != null and query.name != null and query.name.trim() != ''">
+            AND t.name LIKE CONCAT('%', TRIM(#{query.name}), '%')
+        </if>
+        <if test="query != null and query.code != null and query.code.trim() != ''">
+            AND e.code LIKE CONCAT('%', TRIM(#{query.code}), '%')
+        </if>
+    </select>
+
+    <select id="selectExpressTemplateList" resultType="com.sz.admin.shop_system.pojo.vo.ShopExpressTemplateVO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM shop_express_template
+        <where>
+            <if test="query != null and query.name != null and query.name.trim() != ''">
+                AND name LIKE CONCAT('%', #{query.name}, '%')
+            </if>
+            <if test="query != null and query.expressPrice != null">
+                AND express_price = #{query.expressPrice}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectExpressTemplateDetailById" resultType="com.sz.admin.shop_system.pojo.vo.ShopExpressTemplateVO">
+        SELECT
+            et.id,
+            et.name,
+            et.express_id,
+            et.express_price,
+            et.is_del,
+            ex.code,
+            ex.express_name,
+            ex.sort,
+            ex.create_time,
+            ex.update_time
+        FROM shop_express_template et
+        LEFT JOIN shop_express ex ON et.express_id = ex.id
+        WHERE et.id = #{id}
+          AND et.is_del = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectActiveById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_express_template
+        WHERE id = #{id}
+          AND is_del = 0
+        LIMIT 1
+    </select>
+
+</mapper>

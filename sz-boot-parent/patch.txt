@@ -1,0 +1,16 @@
+*** Begin Patch
+*** Update File: sz-common/sz-common-security/src/main/java/com/sz/security/config/SaTokenConfig.java
+@@
+-        registry.addInterceptor(new MySaInterceptor(handler -> SaRouter
+-                .match("/**/front/**", r -> StpUserUtil.checkLogin())
+-                .notMatch("/**/front/**", r -> StpUtil.checkLogin())
+-        )).addPathPatterns("/**").excludePathPatterns(new ArrayList<>(whitelistProperties.getWhitelist()));
++        registry.addInterceptor(new MySaInterceptor(handler -> {
++            SaRouter.match("/**/front/**", r -> StpUserUtil.checkLogin());
++            SaRouter.match("/**", r -> {
++                if (!SaRouter.isMatch("/**/front/**")) {
++                    StpUtil.checkLogin();
++                }
++            });
++        })).addPathPatterns("/**").excludePathPatterns(new ArrayList<>(whitelistProperties.getWhitelist()));
+*** End Patch

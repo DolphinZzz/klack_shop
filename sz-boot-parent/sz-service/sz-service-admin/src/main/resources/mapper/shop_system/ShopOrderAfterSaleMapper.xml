@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopOrderAfterSaleMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopOrderAfterSale">
+        <id column="id" property="id"/>
+        <result column="service_no" property="serviceNo"/>
+        <result column="order_id" property="orderId"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="uid" property="uid"/>
+        <result column="after_sale_type" property="afterSaleType"/>
+        <result column="status" property="status"/>
+        <result column="apply_amount" property="applyAmount"/>
+        <result column="reason" property="reason"/>
+        <result column="user_remark" property="userRemark"/>
+        <result column="audit_remark" property="auditRemark"/>
+        <result column="receive_remark" property="receiveRemark"/>
+        <result column="return_express_name" property="returnExpressName"/>
+        <result column="return_express_no" property="returnExpressNo"/>
+        <result column="return_remark" property="returnRemark"/>
+        <result column="audit_time" property="auditTime"/>
+        <result column="return_time" property="returnTime"/>
+        <result column="receive_time" property="receiveTime"/>
+        <result column="refund_time" property="refundTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_del" property="isDel"/>
+        <result column="version" property="version"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, service_no, order_id, order_no, uid, after_sale_type, status, apply_amount, reason,
+        user_remark, audit_remark, receive_remark, return_express_name, return_express_no,
+        return_remark, audit_time, return_time, receive_time, refund_time, create_time,
+        update_time, is_del, version
+    </sql>
+
+    <select id="selectActiveByOrderId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_order_after_sale
+        WHERE order_id = #{orderId}
+          AND IFNULL(is_del, 0) = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectActiveByIdAndUid" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_order_after_sale
+        WHERE id = #{id}
+          AND uid = #{uid}
+          AND IFNULL(is_del, 0) = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectActiveById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_order_after_sale
+        WHERE id = #{id}
+          AND IFNULL(is_del, 0) = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectFrontPageList" resultType="com.sz.admin.shop_system.pojo.vo.ShopFrontOrderAfterSaleVO">
+        SELECT
+            id,
+            service_no AS serviceNo,
+            order_id AS orderId,
+            order_no AS orderNo,
+            after_sale_type AS afterSaleType,
+            status,
+            apply_amount AS applyAmount,
+            reason,
+            user_remark AS userRemark,
+            audit_remark AS auditRemark,
+            receive_remark AS receiveRemark,
+            return_express_name AS returnExpressName,
+            return_express_no AS returnExpressNo,
+            return_remark AS returnRemark,
+            audit_time AS auditTime,
+            return_time AS returnTime,
+            receive_time AS receiveTime,
+            refund_time AS refundTime,
+            create_time AS createTime
+        FROM shop_order_after_sale
+        WHERE uid = #{uid}
+          AND IFNULL(is_del, 0) = 0
+        <if test="dto != null and dto.status != null">
+            AND status = #{dto.status}
+        </if>
+        <if test="dto != null and dto.keyword != null and dto.keyword != ''">
+            AND (
+                service_no LIKE CONCAT('%', #{dto.keyword}, '%')
+                OR order_no LIKE CONCAT('%', #{dto.keyword}, '%')
+            )
+        </if>
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+    <select id="selectAdminPageList" resultType="com.sz.admin.shop_system.pojo.vo.ShopOrderAfterSaleVO">
+        SELECT
+            t1.id,
+            t1.service_no AS serviceNo,
+            t1.order_id AS orderId,
+            t1.order_no AS orderNo,
+            t1.uid,
+            t2.real_name AS realName,
+            t2.user_phone AS userPhone,
+            t2.user_address AS userAddress,
+            t1.after_sale_type AS afterSaleType,
+            t1.status,
+            t1.apply_amount AS applyAmount,
+            t1.reason,
+            t1.user_remark AS userRemark,
+            t1.audit_remark AS auditRemark,
+            t1.receive_remark AS receiveRemark,
+            t1.return_express_name AS returnExpressName,
+            t1.return_express_no AS returnExpressNo,
+            t1.return_remark AS returnRemark,
+            t1.audit_time AS auditTime,
+            t1.return_time AS returnTime,
+            t1.receive_time AS receiveTime,
+            t1.refund_time AS refundTime,
+            t1.create_time AS createTime
+        FROM shop_order_after_sale t1
+        LEFT JOIN shop_order t2 ON t1.order_id = t2.id
+        WHERE IFNULL(t1.is_del, 0) = 0
+        <if test="dto != null and dto.serviceNo != null and dto.serviceNo != ''">
+            AND t1.service_no LIKE CONCAT('%', #{dto.serviceNo}, '%')
+        </if>
+        <if test="dto != null and dto.orderNo != null and dto.orderNo != ''">
+            AND t1.order_no LIKE CONCAT('%', #{dto.orderNo}, '%')
+        </if>
+        <if test="dto != null and dto.afterSaleType != null">
+            AND t1.after_sale_type = #{dto.afterSaleType}
+        </if>
+        <if test="dto != null and dto.status != null">
+            AND t1.status = #{dto.status}
+        </if>
+        ORDER BY t1.create_time DESC, t1.id DESC
+    </select>
+</mapper>

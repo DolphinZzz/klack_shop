@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopUserRechargeMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopUserRecharge">
+        <id column="id" property="id"/>
+        <result column="uid" property="uid" />
+        <result column="pay_activity_id" property="payActivityId" />
+        <result column="order_id" property="orderId" />
+        <result column="price" property="price" />
+        <result column="give_price" property="givePrice" />
+        <result column="recharge_type" property="rechargeType" />
+        <result column="pay_time" property="payTime" />
+        <result column="refund_price" property="refundPrice" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="is_del" property="isDel" />
+    </resultMap>
+
+    <resultMap id="ShopUserRechargeVOResultMap" type="com.sz.admin.shop_system.pojo.vo.ShopUserRechargeVO">
+        <id column="id" property="id"/>
+        <result column="uid" property="uid" />
+        <result column="pay_activity_id" property="payActivityId" />
+        <result column="order_id" property="orderId" />
+        <result column="price" property="price" />
+        <result column="give_price" property="givePrice" />
+        <result column="recharge_type" property="rechargeType" />
+        <result column="pay_time" property="payTime" />
+        <result column="refund_price" property="refundPrice" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, uid, pay_activity_id, order_id, price, give_price, recharge_type, pay_time, refund_price, create_time, update_time, is_del
+    </sql>
+
+    <select id="countById" resultType="long">
+        SELECT COUNT(*)
+        FROM shop_user_recharge
+        WHERE id = #{id}
+    </select>
+
+    <select id="countByOrderId" resultType="long">
+        SELECT COUNT(*)
+        FROM shop_user_recharge
+        WHERE order_id = #{orderId}
+    </select>
+
+    <select id="sumPositivePriceByUid" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(price), 0)
+        FROM shop_user_recharge
+        WHERE uid = #{uid}
+          AND price &gt; 0
+    </select>
+
+    <select id="selectRechargeList" resultMap="ShopUserRechargeVOResultMap">
+        SELECT id, uid, pay_activity_id, order_id, price, give_price, recharge_type, pay_time, refund_price
+        FROM shop_user_recharge
+        <where>
+            <if test="dto != null">
+                <if test="dto.uid != null">
+                    AND uid LIKE CONCAT('%', #{dto.uid}, '%')
+                </if>
+                <if test="dto.payActivityId != null">
+                    AND pay_activity_id LIKE CONCAT('%', #{dto.payActivityId}, '%')
+                </if>
+                <if test="dto.orderId != null">
+                    AND order_id LIKE CONCAT('%', #{dto.orderId}, '%')
+                </if>
+                <if test="dto.price != null">
+                    AND price = #{dto.price}
+                </if>
+                <if test="dto.givePrice != null">
+                    AND give_price = #{dto.givePrice}
+                </if>
+                <if test="dto.rechargeType != null and dto.rechargeType.trim() != ''">
+                    AND recharge_type = #{dto.rechargeType}
+                </if>
+                <if test="dto.payTimeStart != null and dto.payTimeEnd != null">
+                    AND pay_time BETWEEN #{dto.payTimeStart} AND #{dto.payTimeEnd}
+                </if>
+                <if test="dto.refundPrice != null">
+                    AND refund_price = #{dto.refundPrice}
+                </if>
+                <if test="dto.isDel != null">
+                    AND is_del = #{dto.isDel}
+                </if>
+            </if>
+        </where>
+    </select>
+
+</mapper>

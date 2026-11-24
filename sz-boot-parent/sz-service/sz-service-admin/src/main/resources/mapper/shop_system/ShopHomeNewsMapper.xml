@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopHomeNewsMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopHomeNews">
+        <id column="id" property="id"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="title" property="title"/>
+        <result column="tag_name" property="tagName"/>
+        <result column="cover_image" property="coverImage"/>
+        <result column="summary" property="summary"/>
+        <result column="content" property="content"/>
+        <result column="link" property="link"/>
+        <result column="source" property="source"/>
+        <result column="author" property="author"/>
+        <result column="browse_count" property="browseCount"/>
+        <result column="sort" property="sort"/>
+        <result column="is_top" property="isTop"/>
+        <result column="status" property="status"/>
+        <result column="publish_time" property="publishTime"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_del" property="isDel"/>
+        <result column="version" property="version"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, category_id, title, tag_name, cover_image, summary, content, link, source, author,
+        browse_count, sort, is_top, status, publish_time, start_time, end_time, remark,
+        create_time, update_time, is_del, version
+    </sql>
+
+    <sql id="VO_Column_List">
+        id, category_id, title, tag_name, cover_image, summary, content, link, source, author,
+        browse_count, sort, is_top, status, publish_time, start_time, end_time, remark, create_time
+    </sql>
+
+    <sql id="Front_Active_Condition">
+        is_del = 0
+        AND status = 0
+        AND (start_time IS NULL OR start_time &lt;= #{now})
+        AND (end_time IS NULL OR end_time &gt;= #{now})
+        AND (publish_time IS NULL OR publish_time &lt;= #{now})
+    </sql>
+
+    <select id="selectNewsList" resultType="com.sz.admin.shop_system.pojo.vo.ShopHomeNewsVO">
+        SELECT
+        <include refid="VO_Column_List"/>
+        FROM shop_home_news
+        <where>
+            <if test="query != null and query.categoryId != null">
+                AND category_id = #{query.categoryId}
+            </if>
+            <if test="query != null and query.title != null and query.title.trim() != ''">
+                AND title LIKE CONCAT('%', #{query.title}, '%')
+            </if>
+            <if test="query != null and query.isTop != null">
+                AND is_top = #{query.isTop}
+            </if>
+            <if test="query != null and query.status != null">
+                AND status = #{query.status}
+            </if>
+        </where>
+        ORDER BY is_top DESC, sort ASC, publish_time DESC, id DESC
+    </select>
+
+    <select id="selectFrontNewsList" resultType="com.sz.admin.shop_system.pojo.vo.ShopHomeNewsVO">
+        SELECT
+        <include refid="VO_Column_List"/>
+        FROM shop_home_news
+        WHERE
+        <include refid="Front_Active_Condition"/>
+        ORDER BY is_top DESC, sort ASC, publish_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectFrontNewsPageList" resultType="com.sz.admin.shop_system.pojo.vo.ShopHomeNewsVO">
+        SELECT
+        <include refid="VO_Column_List"/>
+        FROM shop_home_news
+        WHERE
+        <include refid="Front_Active_Condition"/>
+        <if test="categoryId != null and categoryId &gt; 0">
+            AND category_id = #{categoryId}
+        </if>
+        ORDER BY is_top DESC, publish_time DESC, id DESC
+    </select>
+
+    <select id="selectHotNewsList" resultType="com.sz.admin.shop_system.pojo.vo.ShopHomeNewsVO">
+        SELECT
+        <include refid="VO_Column_List"/>
+        FROM shop_home_news
+        WHERE
+        <include refid="Front_Active_Condition"/>
+        ORDER BY browse_count DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectFrontNewsById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM shop_home_news
+        WHERE
+        <include refid="Front_Active_Condition"/>
+        AND id = #{id}
+        LIMIT 1
+    </select>
+
+</mapper>

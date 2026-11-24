@@ -1,0 +1,11 @@
+server:
+  servlet:
+    context-path: /api
+  port: 9991
+
+sz:
+  payment:
+    timeout-minutes: 30
+    enable-wxpay: false
+    enable-alipay: false
+    enable-yue: true

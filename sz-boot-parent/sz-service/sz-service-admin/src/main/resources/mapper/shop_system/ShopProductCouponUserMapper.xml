@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopProductCouponUserMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopProductCouponUser">
+        <id column="id" property="id"/>
+        <result column="cid" property="cid"/>
+        <result column="uid" property="uid"/>
+        <result column="type" property="type"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="use_time" property="useTime"/>
+        <result column="use_type" property="useType"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, cid, uid, type, status, create_time, update_time, use_time, use_type
+    </sql>
+
+    <select id="countByCidAndUid" resultType="long">
+        SELECT COUNT(1)
+        FROM shop_product_coupon_user
+        WHERE cid = #{cid}
+          AND uid = #{uid}
+    </select>
+
+    <select id="selectUidsByCid" resultType="java.lang.Long">
+        SELECT uid
+        FROM shop_product_coupon_user
+        WHERE cid = #{cid}
+    </select>
+
+    <select id="selectByUidOrderByCreateTimeDesc" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product_coupon_user
+        WHERE uid = #{uid}
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+    <select id="selectAvailableByIdAndUid" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product_coupon_user
+        WHERE id = #{id}
+          AND uid = #{uid}
+          AND status = 0
+        LIMIT 1
+    </select>
+
+    <update id="markUsedByIdAndUid">
+        UPDATE shop_product_coupon_user
+        SET status = 1,
+            use_time = #{useTime},
+            update_time = NOW()
+        WHERE id = #{id}
+          AND uid = #{uid}
+          AND status = 0
+    </update>
+
+</mapper>

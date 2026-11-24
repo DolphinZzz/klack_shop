@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopCategoryMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopCategory">
+        <id column="id" property="id"/>
+        <result column="pid" property="pid" />
+        <result column="cate_name" property="cateName" />
+        <result column="sort" property="sort" />
+        <result column="pic" property="pic" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="deleted" property="deleted" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, pid, cate_name, sort, pic, create_time, update_time, deleted
+    </sql>
+
+    <select id="selectAllCategories" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM shop_category
+    </select>
+
+    <select id="selectCategoryList" resultType="com.sz.admin.shop_system.pojo.vo.ShopCategoryVO">
+        SELECT id, pid, cate_name, sort
+        FROM shop_category
+        <where>
+            <if test="query != null and query.cateName != null and query.cateName.trim() != ''">
+                AND cate_name LIKE CONCAT('%', #{query.cateName}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="selectChildrenByPid" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM shop_category
+        WHERE pid = #{pid}
+        ORDER BY sort ASC
+    </select>
+
+    <select id="selectByPids" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM shop_category
+        WHERE pid IN
+        <foreach collection="pids" item="pid" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+    </select>
+
+</mapper>

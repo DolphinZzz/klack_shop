@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopFlashSaleMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopFlashSale">
+        <id column="id" property="id"/>
+        <result column="product_id" property="productId"/>
+        <result column="flash_price" property="flashPrice"/>
+        <result column="limit_per_user" property="limitPerUser"/>
+        <result column="reserve_seconds" property="reserveSeconds"/>
+        <result column="status" property="status"/>
+        <result column="sort" property="sort"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_del" property="isDel"/>
+        <result column="version" property="version"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, product_id, flash_price, limit_per_user, reserve_seconds, status, sort, start_time, end_time, create_time, update_time, is_del, version
+    </sql>
+
+    <select id="selectMarketingPage" resultType="com.sz.admin.shop_system.pojo.vo.ShopFlashSaleVO">
+        SELECT
+            t1.id,
+            t2.id AS productId,
+            t2.product_name AS productName,
+            t2.image AS image,
+            t2.price AS price,
+            t2.stock AS stock,
+            t2.browse AS browse,
+            t2.ficti_browse AS fictiBrowse,
+            t2.sales AS sales,
+            t2.is_show AS productShowStatus,
+            t2.is_seckill AS isSeckill,
+            t2.activity AS activity,
+            t1.status AS flashStatus,
+            t1.flash_price AS flashPrice,
+            t1.limit_per_user AS limitPerUser,
+            t1.reserve_seconds AS reserveSeconds,
+            t1.start_time AS startTime,
+            t1.end_time AS endTime,
+            CASE WHEN t1.status = 1 AND NOW() BETWEEN t1.start_time AND t1.end_time THEN 1 ELSE 0 END AS flashActive
+        FROM shop_product t2
+        LEFT JOIN shop_flash_sale t1 ON t1.product_id = t2.id AND t1.is_del = 0
+        WHERE IFNULL(t2.is_del, 0) = 0
+        <if test="dto != null and dto.productName != null and dto.productName.trim() != ''">
+            AND t2.product_name LIKE CONCAT('%', #{dto.productName}, '%')
+        </if>
+        <if test="dto != null and dto.productShowStatus != null">
+            AND t2.is_show = #{dto.productShowStatus}
+        </if>
+        <if test="dto != null and dto.flashStatus != null">
+            AND IFNULL(t1.status, 0) = #{dto.flashStatus}
+        </if>
+        ORDER BY IFNULL(t1.sort, 0) DESC, t2.id DESC
+    </select>
+
+    <select id="selectByProductId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_flash_sale
+        WHERE product_id = #{productId}
+          AND is_del = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectActiveFrontList" resultType="com.sz.admin.shop_system.pojo.vo.ShopFlashSaleFrontVO">
+        SELECT
+            t1.id,
+            t2.id AS productId,
+            t2.product_name AS productName,
+            t2.image AS image,
+            t2.price AS price,
+            t1.flash_price AS flashPrice,
+            t2.stock AS stock,
+            t2.sales AS sales,
+            t2.browse AS browse,
+            t2.ficti_browse AS fictiBrowse,
+            t1.limit_per_user AS limitPerUser,
+            t1.status AS status,
+            t1.start_time AS startTime,
+            t1.end_time AS endTime
+        FROM shop_flash_sale t1
+        LEFT JOIN shop_product t2 ON t1.product_id = t2.id
+        WHERE IFNULL(t1.is_del, 0) = 0
+          AND IFNULL(t2.is_del, 0) = 0
+          AND IFNULL(t2.is_show, 0) = 1
+          AND IFNULL(t2.is_seckill, 0) = 1
+          AND t2.activity = '1'
+          AND t1.status = 1
+          AND t1.start_time &lt;= #{now}
+          AND t1.end_time &gt;= #{now}
+        ORDER BY t1.sort DESC, t2.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectFrontDetailByProductId" resultType="com.sz.admin.shop_system.pojo.vo.ShopFlashSaleFrontVO">
+        SELECT
+            t1.id,
+            t2.id AS productId,
+            t2.product_name AS productName,
+            t2.image AS image,
+            t2.price AS price,
+            t1.flash_price AS flashPrice,
+            t2.stock AS stock,
+            t2.sales AS sales,
+            t2.browse AS browse,
+            t2.ficti_browse AS fictiBrowse,
+            t1.limit_per_user AS limitPerUser,
+            t1.status AS status,
+            t1.start_time AS startTime,
+            t1.end_time AS endTime
+        FROM shop_flash_sale t1
+        LEFT JOIN shop_product t2 ON t1.product_id = t2.id
+        WHERE IFNULL(t1.is_del, 0) = 0
+          AND IFNULL(t2.is_del, 0) = 0
+          AND t1.product_id = #{productId}
+        LIMIT 1
+    </select>
+
+    <select id="selectAvailableByProductId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_flash_sale
+        WHERE product_id = #{productId}
+          AND is_del = 0
+          AND status = 1
+          AND start_time &lt;= #{now}
+          AND end_time &gt;= #{now}
+        LIMIT 1
+    </select>
+
+</mapper>

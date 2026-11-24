@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopUserFavoriteMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopUserFavorite">
+        <id column="id" property="id"/>
+        <result column="uid" property="uid" />
+        <result column="product_id" property="productId" />
+        <result column="product_name" property="productName" />
+        <result column="product_info" property="productInfo" />
+        <result column="product_image" property="productImage" />
+        <result column="product_price" property="productPrice" />
+        <result column="give_integral" property="giveIntegral" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="is_del" property="isDel" />
+        <result column="version" property="version" />
+    </resultMap>
+
+    <resultMap id="ShopFrontUserFavoriteVOResultMap" type="com.sz.admin.shop_system.pojo.vo.ShopFrontUserFavoriteVO">
+        <id column="id" property="id"/>
+        <result column="product_id" property="productId" />
+        <result column="product_name" property="productName" />
+        <result column="product_info" property="productInfo" />
+        <result column="product_image" property="productImage" />
+        <result column="product_price" property="productPrice" />
+        <result column="give_integral" property="giveIntegral" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, uid, product_id, product_name, product_info, product_image, product_price, give_integral, create_time, update_time, is_del, version
+    </sql>
+
+    <select id="selectOneByUidAndProductId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_user_favorite
+        WHERE uid = #{uid}
+          AND product_id = #{productId}
+        LIMIT 1
+    </select>
+
+    <select id="selectActiveByUidAndProductId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_user_favorite
+        WHERE uid = #{uid}
+          AND product_id = #{productId}
+          AND is_del = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectFrontFavoriteList" resultMap="ShopFrontUserFavoriteVOResultMap">
+        SELECT id, product_id, product_name, product_info, product_image, product_price, give_integral, create_time, update_time
+        FROM shop_user_favorite
+        WHERE uid = #{uid}
+          AND is_del = 0
+        ORDER BY update_time DESC, create_time DESC, id DESC
+    </select>
+
+    <update id="softDeleteByUidAndIds">
+        UPDATE shop_user_favorite
+        SET is_del = 1,
+            update_time = NOW()
+        WHERE uid = #{uid}
+          AND is_del = 0
+          AND id IN
+          <foreach collection="ids" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+    </update>
+
+    <update id="softDeleteByUidAndProductId">
+        UPDATE shop_user_favorite
+        SET is_del = 1,
+            update_time = NOW()
+        WHERE uid = #{uid}
+          AND product_id = #{productId}
+          AND is_del = 0
+    </update>
+
+    <select id="countActiveByUid" resultType="long">
+        SELECT COUNT(*)
+        FROM shop_user_favorite
+        WHERE uid = #{uid}
+          AND is_del = 0
+    </select>
+
+</mapper>

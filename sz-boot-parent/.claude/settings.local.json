@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find sz-service/sz-service-admin/src/main/resources/db/changelog -name \"*.sql\" -type f -exec grep -l \"lb_user\" {} ;)",
+      "Bash(python:*)",
+      "Bash(nul)",
+      "Bash(dir:*)",
+      "Skill(collaborating-with-codex)",
+      "Bash(openspec:*)",
+      "Bash(npm install:*)",
+      "Bash(find:*)",
+      "Bash(powershell:*)",
+      "Bash(where:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

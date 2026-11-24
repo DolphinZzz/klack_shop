@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopProductMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopProduct">
+        <id column="id" property="id"/>
+        <result column="image" property="image"/>
+        <result column="slider_image" property="sliderImage"/>
+        <result column="product_name" property="productName"/>
+        <result column="product_info" property="productInfo"/>
+        <result column="keyword" property="keyword"/>
+        <result column="cate_id" property="cateId"/>
+        <result column="price" property="price"/>
+        <result column="vip_price" property="vipPrice"/>
+        <result column="ot_price" property="otPrice"/>
+        <result column="is_postage" property="isPostage"/>
+        <result column="express_name" property="expressName"/>
+        <result column="express_id" property="expressId"/>
+        <result column="postage" property="postage"/>
+        <result column="unit_name" property="unitName"/>
+        <result column="sort" property="sort"/>
+        <result column="sales" property="sales"/>
+        <result column="stock" property="stock"/>
+        <result column="is_show" property="isShow"/>
+        <result column="is_hot" property="isHot"/>
+        <result column="is_best" property="isBest"/>
+        <result column="is_new" property="isNew"/>
+        <result column="is_seckill" property="isSeckill"/>
+        <result column="is_bargain" property="isBargain"/>
+        <result column="give_integral" property="giveIntegral"/>
+        <result column="desc" property="desc"/>
+        <result column="browse" property="browse"/>
+        <result column="ficti_browse" property="fictiBrowse"/>
+        <result column="activity" property="activity"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_del" property="isDel"/>
+        <result column="version" property="version"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, image, slider_image, product_name, product_info, keyword, cate_id, price, vip_price, ot_price,
+        is_postage, express_name, express_id, postage, unit_name, sort, sales, stock, is_show, is_hot, is_best,
+        is_new, is_seckill, is_bargain, give_integral, `desc`, browse, ficti_browse, activity, create_time,
+        update_time, is_del, version
+    </sql>
+
+    <select id="selectProductList" resultType="com.sz.admin.shop_system.pojo.vo.ShopProductVO">
+        SELECT
+            id,
+            image,
+            product_name,
+            price,
+            sales,
+            stock,
+            is_show,
+            is_seckill,
+            create_time,
+            update_time
+        FROM shop_product
+        <where>
+            <if test="dto != null and dto.productName != null and dto.productName.trim() != ''">
+                AND product_name LIKE CONCAT('%', #{dto.productName}, '%')
+            </if>
+            <if test="dto != null and dto.cateId != null">
+                AND cate_id LIKE CONCAT('%', #{dto.cateId}, '%')
+            </if>
+            <if test="dto != null and dto.isShow != null">
+                AND is_show = #{dto.isShow}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectFrontCategoryProductList" resultType="com.sz.admin.shop_system.pojo.page.ProductResponse">
+        SELECT
+            id,
+            product_name,
+            image,
+            price,
+            activity,
+            sales,
+            ficti_browse,
+            unit_name,
+            stock,
+            cate_id
+        FROM shop_product
+        WHERE is_del = 0
+          AND stock &gt; 0
+          AND is_show = 1
+        <if test="categoryIdList != null and categoryIdList.size() &gt; 0">
+            AND cate_id IN
+            <foreach collection="categoryIdList" item="cid" open="(" separator="," close=")">
+                #{cid}
+            </foreach>
+        </if>
+        <if test="keyword != null and keyword.trim() != ''">
+            AND product_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="minPrice != null">
+            AND price &gt;= #{minPrice}
+        </if>
+        <if test="maxPrice != null">
+            AND price &lt;= #{maxPrice}
+        </if>
+        ORDER BY
+        <choose>
+            <when test="salesOrder != null and salesOrder.trim() != ''">
+                <choose>
+                    <when test="salesOrder == 'desc'">
+                        sales DESC
+                    </when>
+                    <otherwise>
+                        sales ASC
+                    </otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                <if test="priceOrder != null and priceOrder.trim() != ''">
+                    <choose>
+                        <when test="priceOrder == 'desc'">
+                            price DESC,
+                        </when>
+                        <otherwise>
+                            price ASC,
+                        </otherwise>
+                    </choose>
+                </if>
+                sort DESC, id DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectFrontCommentList" resultType="com.sz.admin.shop_system.pojo.vo.ShopFrontProductCommentVO">
+        SELECT
+            c.id,
+            COALESCE(NULLIF(u.real_name, ''), NULLIF(u.nickname, ''), CONCAT('用户', c.uid)) AS userName,
+            u.avatar AS userAvatar,
+            c.product_id AS productId,
+            p.product_name AS productName,
+            p.image AS productImage,
+            p.product_info AS productInfo,
+            p.price AS productPrice,
+            c.product_score AS productScore,
+            c.comment AS comment,
+            c.pic AS pic,
+            c.create_time AS createTime
+        FROM shop_product_comment c
+        LEFT JOIN shop_product p ON c.product_id = p.id
+        LEFT JOIN shop_user u ON c.uid = u.uid
+        WHERE c.product_id = #{productId}
+          AND IFNULL(c.is_del, 0) = 0
+        ORDER BY c.create_time DESC, c.id DESC
+    </select>
+
+    <select id="selectNewRecommendProducts" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product
+        WHERE is_del = 0
+          AND is_show = 1
+          AND is_new = 1
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectBestProductsByBrowse" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product
+        WHERE is_del = 0
+          AND is_show = 1
+          AND is_best = 1
+        ORDER BY browse DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectNonBestProductsByBrowse" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product
+        WHERE is_del = 0
+          AND is_show = 1
+          AND (is_best &lt;&gt; 1 OR is_best IS NULL)
+        ORDER BY browse DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectHomeShowProducts" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product
+        WHERE is_del = 0
+          AND is_show = 1
+        ORDER BY is_best DESC, sales DESC, sort DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <update id="updateStockOptimistic">
+        UPDATE shop_product
+        SET stock = #{newStock},
+            version = #{newVersion},
+            update_time = NOW()
+        WHERE id = #{id}
+        <choose>
+            <when test="expectedVersion == null">
+                AND version IS NULL
+            </when>
+            <otherwise>
+                AND version = #{expectedVersion}
+            </otherwise>
+        </choose>
+    </update>
+
+</mapper>

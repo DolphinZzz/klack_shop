@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopUserBillMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopUserBill">
+        <id column="id" property="id"/>
+        <result column="uid" property="uid" />
+        <result column="link_id" property="linkId" />
+        <result column="pm" property="pm" />
+        <result column="title" property="title" />
+        <result column="category" property="category" />
+        <result column="type" property="type" />
+        <result column="number" property="number" />
+        <result column="balance" property="balance" />
+        <result column="mark" property="mark" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="status" property="status" />
+    </resultMap>
+
+    <resultMap id="ShopUserBillVOResultMap" type="com.sz.admin.shop_system.pojo.vo.ShopUserBillVO">
+        <id column="id" property="id"/>
+        <result column="uid" property="uid" />
+        <result column="account" property="account" />
+        <result column="real_name" property="realName" />
+        <result column="pm" property="pm" />
+        <result column="title" property="title" />
+        <result column="category" property="category" />
+        <result column="type" property="type" />
+        <result column="number" property="number" />
+        <result column="balance" property="balance" />
+        <result column="mark" property="mark" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="status" property="status" />
+    </resultMap>
+
+    <resultMap id="ShopFrontUserBillVOResultMap" type="com.sz.admin.shop_system.pojo.vo.ShopFrontUserBillVO">
+        <id column="id" property="id"/>
+        <result column="link_id" property="linkId" />
+        <result column="pm" property="pm" />
+        <result column="title" property="title" />
+        <result column="type" property="type" />
+        <result column="number" property="number" />
+        <result column="balance" property="balance" />
+        <result column="mark" property="mark" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, uid, link_id, pm, title, category, type, number, balance, mark, create_time, update_time, status
+    </sql>
+
+    <select id="countById" resultType="long">
+        SELECT COUNT(*)
+        FROM shop_user_bill
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectBillList" resultMap="ShopUserBillVOResultMap">
+        SELECT t1.id, t1.uid, t2.account AS account, t2.real_name AS real_name,
+               t1.pm, t1.title, t1.category, t1.type, t1.number, t1.balance,
+               t1.mark, t1.create_time, t1.update_time, t1.status
+        FROM shop_user_bill t1
+        LEFT JOIN shop_user t2 ON t1.uid = t2.uid
+        <where>
+            <if test="dto != null">
+                <if test="dto.uid != null">
+                    AND t1.uid = #{dto.uid}
+                </if>
+                <if test="dto.pm != null">
+                    AND t1.pm = #{dto.pm}
+                </if>
+            </if>
+        </where>
+    </select>
+
+    <select id="sumPositiveNumberByUidAndCategoryAndPm" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(number), 0)
+        FROM shop_user_bill
+        WHERE uid = #{uid}
+          AND category = #{category}
+          AND pm = #{pm}
+          AND number &gt; 0
+    </select>
+
+    <select id="selectFrontBillList" resultMap="ShopFrontUserBillVOResultMap">
+        SELECT id, link_id, pm, title, type, number, balance, mark, create_time
+        FROM shop_user_bill
+        WHERE uid = #{uid}
+          AND category = #{category}
+        <if test="tab == 'expend'">
+            AND pm = #{pmPay}
+        </if>
+        <if test="tab == 'recharge'">
+            AND type = #{rechargeType}
+        </if>
+        <if test="tab == 'income'">
+            AND pm = #{pmRefund}
+            AND (type IS NULL OR type != #{rechargeType})
+        </if>
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+</mapper>

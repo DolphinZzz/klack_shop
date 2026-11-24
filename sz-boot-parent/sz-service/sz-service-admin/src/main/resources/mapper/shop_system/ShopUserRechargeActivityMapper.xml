@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopUserRechargeActivityMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopUserRechargeActivity">
+        <id column="id" property="id"/>
+        <result column="activity_name" property="activityName" />
+        <result column="price" property="price" />
+        <result column="give_price" property="givePrice" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="is_del" property="isDel" />
+    </resultMap>
+
+    <resultMap id="ShopUserRechargeActivityVOResultMap" type="com.sz.admin.shop_system.pojo.vo.ShopUserRechargeActivityVO">
+        <id column="id" property="id"/>
+        <result column="activity_name" property="activityName" />
+        <result column="price" property="price" />
+        <result column="give_price" property="givePrice" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, activity_name, price, give_price, create_time, update_time, is_del
+    </sql>
+
+    <select id="countById" resultType="long">
+        SELECT COUNT(*)
+        FROM shop_user_recharge_activity
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectActiveById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_user_recharge_activity
+        WHERE id = #{id}
+          AND is_del = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectActivityList" resultMap="ShopUserRechargeActivityVOResultMap">
+        SELECT id, activity_name, price, give_price
+        FROM shop_user_recharge_activity
+        <where>
+            <if test="dto != null and dto.activityName != null and dto.activityName.trim() != ''">
+                AND activity_name LIKE CONCAT('%', #{dto.activityName}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="selectFrontActivityList" resultMap="ShopUserRechargeActivityVOResultMap">
+        SELECT id, activity_name, price, give_price
+        FROM shop_user_recharge_activity
+        WHERE is_del = 0
+        ORDER BY price ASC, id ASC
+    </select>
+
+</mapper>

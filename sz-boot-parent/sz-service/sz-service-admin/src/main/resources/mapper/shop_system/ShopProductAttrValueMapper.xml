@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sz.admin.shop_system.mapper.ShopProductAttrValueMapper">
+    <!-- 通用映射 -->
+    <resultMap id="BaseResultMap" type="com.sz.admin.shop_system.pojo.po.ShopProductAttrValue">
+        <id column="id" property="id"/>
+        <result column="product_id" property="productId"/>
+        <result column="sku" property="sku"/>
+        <result column="stock" property="stock"/>
+        <result column="price" property="price"/>
+        <result column="flash_price" property="flashPrice"/>
+        <result column="image" property="image"/>
+        <result column="cost" property="cost"/>
+        <result column="bar_code" property="barCode"/>
+        <result column="ot_price" property="otPrice"/>
+        <result column="weight" property="weight"/>
+        <result column="volume" property="volume"/>
+        <result column="is_del" property="isDel"/>
+        <result column="version" property="version"/>
+        <result column="is_default" property="isDefault"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, product_id, sku, stock, price, flash_price, image, cost, bar_code, ot_price, weight, volume, is_del, version, is_default
+    </sql>
+
+    <select id="selectActiveByProductId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product_attr_value
+        WHERE product_id = #{productId}
+          AND is_del = 0
+    </select>
+
+    <select id="selectByProductId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product_attr_value
+        WHERE product_id = #{productId}
+    </select>
+
+    <delete id="deleteByProductId">
+        DELETE FROM shop_product_attr_value
+        WHERE product_id = #{productId}
+    </delete>
+
+    <delete id="deleteByProductIds">
+        DELETE FROM shop_product_attr_value
+        WHERE product_id IN
+        <foreach collection="productIds" item="productId" open="(" separator="," close=")">
+            #{productId}
+        </foreach>
+    </delete>
+
+    <update id="deductStockOptimistic">
+        UPDATE shop_product_attr_value
+        SET stock = #{newStock},
+            version = #{newVersion}
+        WHERE id = #{id}
+          AND stock &gt;= #{minStock}
+        <choose>
+            <when test="expectedVersion == null">
+                AND version IS NULL
+            </when>
+            <otherwise>
+                AND version = #{expectedVersion}
+            </otherwise>
+        </choose>
+    </update>
+
+    <update id="restoreStockOptimistic">
+        UPDATE shop_product_attr_value
+        SET stock = #{newStock},
+            version = #{newVersion}
+        WHERE id = #{id}
+        <choose>
+            <when test="expectedVersion == null">
+                AND version IS NULL
+            </when>
+            <otherwise>
+                AND version = #{expectedVersion}
+            </otherwise>
+        </choose>
+    </update>
+
+</mapper>

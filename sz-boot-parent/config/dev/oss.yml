@@ -1,0 +1,16 @@
+oss:
+  # 厂商类型：必填 QINIU
+  provider: QINIU
+  # 七牛云 S3 兼容协议 Endpoint（按你的存储空间所在区域选，注意不是普通上传域名）
+  endpoint: s3.ap-southeast-1.qiniucs.com
+  # 七牛云个人中心 -> 密钥管理 中的 AK / SK
+  accessKey: _Y2CqveQM6ToFvvZE40eVGEszJdrDFda7KWdCNH0
+  secretKey: 8RfnNPWOANH_uNl5QIInV4wO4hQDVKKwOhBVnL-q
+  # 七牛云空间名（如果空间名非全局唯一，填控制台“空间概览”里显示的 S3 空间名；名称中不要带点号 .）
+  bucketName: klackshop
+  # 七牛云绑定的 CDN / 自定义访问域名（必须带 http:// 或 https://，末尾不要加 /）
+  domain: http://toxug0ns7.sabkt.gdipper.com
+  # 建议共用桶时改为 uuid，避免不同环境/重复文件名冲突或中文特殊字符问题
+  naming: uuid
+  # 请求 endpoint 使用的协议（http 或 https）
+  scheme: http

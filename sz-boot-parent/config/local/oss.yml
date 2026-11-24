@@ -1,0 +1,11 @@
+oss:
+  # 支持S3协议的厂商
+  provider: MINIO
+  endpoint: 127.0.0.1:9000
+  accessKey: YsY1ysB0BqKPdRmbJ2NB
+  secretKey: r5VyAdvuHYjzoz3nil9HBdFXXwLTn1pF9WqbcTBl
+  bucketName: lb-shop
+  domain: http://127.0.0.1:9000
+  # 命名方式: UUID、ORIGINAL原文件名偏好，冲突会补充时间
+  naming: original
+  scheme: http

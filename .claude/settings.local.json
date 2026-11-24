@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(openspec:*)",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(where:*)",
+      "Bash(npm:*)",
+      "Bash(cmd:*)",
+      "Bash(dir:*)",
+      "Bash(powershell:*)",
+      "Bash(pnpm --version:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(npx @fission-ai/openspec@latest:*)",
+      "Bash(npx --yes @fission-ai/openspec@latest list:*)",
+      "Bash(if not exist \"D:\\\\project\\\\library_system\\\\openspec\\\\changes\" mkdir \"D:\\\\project\\\\library_system\\\\openspec\\\\changes\")",
+      "Bash(if not exist \"D:\\\\project\\\\library_system\\\\openspec\\\\specs\" mkdir \"D:\\\\project\\\\library_system\\\\openspec\\\\specs\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,12 @@
+oss:
+  # 兼容S3协议的厂商 （理论上说所有兼容S3协议的OSS厂商都可以使用）
+  provider: minio
+  endpoint: 10.254.253.130:9000
+  accessKey: 5BLCp6vdG1WopjTX35NO
+  secretKey: X0bGEBxhBfJokFW58UzgKR5vPHKAPFRvZOUoAtjW
+  # bucket
+  bucketName: lb-shop
+  # 自定义域名
+  domain: http://10.254.253.130:9000
+  is-https: false
+  naming: original

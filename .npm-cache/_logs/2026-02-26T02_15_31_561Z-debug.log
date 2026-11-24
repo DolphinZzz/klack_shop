@@ -1,0 +1,91 @@
+0 info it worked if it ends with ok
+1 verbose cli [
+1 verbose cli   'D:\\sofeware\\scoop\\apps\\nvm\\current\\nodejs\\nodejs\\node.exe',
+1 verbose cli   'D:\\sofeware\\scoop\\apps\\nvm\\current\\nodejs\\nodejs\\node_modules\\npm\\bin\\npm-cli.js',
+1 verbose cli   'install',
+1 verbose cli   '--cache',
+1 verbose cli   'D:\\project\\library_system\\.npm-cache'
+1 verbose cli ]
+2 info using npm@6.14.15
+3 info using node@v14.18.0
+4 verbose npm-session 32632c9aff3923e2
+5 silly install runPreinstallTopLevelLifecycles
+6 silly preinstall sz-pc@0.0.1
+7 info lifecycle sz-pc@0.0.1~preinstall: sz-pc@0.0.1
+8 silly install loadCurrentTree
+9 silly install readLocalPackageData
+10 timing stage:loadCurrentTree Completed in 10ms
+11 silly install loadIdealTree
+12 silly install cloneCurrentTreeToIdealTree
+13 timing stage:loadIdealTree:cloneCurrentTree Completed in 0ms
+14 silly install loadShrinkwrap
+15 timing stage:loadIdealTree:loadShrinkwrap Completed in 2ms
+16 silly install loadAllDepsIntoIdealTree
+17 silly fetchPackageMetaData error for @types/node@^22.13.10 request to https://registry.npmmirror.com/@types%2fnode failed, reason: connect EACCES 119.39.74.142:443
+18 silly fetchPackageMetaData error for @vitejs/plugin-vue@^5.2.1 request to https://registry.npmmirror.com/@vitejs%2fplugin-vue failed, reason: connect EACCES 119.39.74.142:443
+19 silly fetchPackageMetaData error for typescript@^5.7.2 request to https://registry.npmmirror.com/typescript failed, reason: connect EACCES 119.39.74.142:443
+20 silly fetchPackageMetaData error for sass@^1.77.8 request to https://registry.npmmirror.com/sass failed, reason: connect EACCES 119.39.74.142:443
+21 silly fetchPackageMetaData error for vite@^6.3.4 request to https://registry.npmmirror.com/vite failed, reason: connect EACCES 119.39.74.142:443
+22 silly fetchPackageMetaData error for @element-plus/icons-vue@^2.3.1 request to https://registry.npmmirror.com/@element-plus%2ficons-vue failed, reason: connect EACCES 119.39.74.142:443
+23 silly fetchPackageMetaData error for vue-tsc@^2.2.10 request to https://registry.npmmirror.com/vue-tsc failed, reason: connect EACCES 119.39.74.142:443
+24 silly fetchPackageMetaData error for axios@^1.9.0 request to https://registry.npmmirror.com/axios failed, reason: connect EACCES 119.39.74.142:443
+25 silly fetchPackageMetaData error for element-plus@^2.9.9 request to https://registry.npmmirror.com/element-plus failed, reason: connect EACCES 119.39.74.142:443
+26 silly fetchPackageMetaData error for pinia@^2.3.1 request to https://registry.npmmirror.com/pinia failed, reason: connect EACCES 119.39.74.142:443
+27 silly fetchPackageMetaData error for pinia-plugin-persistedstate@^3.2.3 request to https://registry.npmmirror.com/pinia-plugin-persistedstate failed, reason: connect EACCES 119.39.74.142:443
+28 silly fetchPackageMetaData error for vue@^3.5.13 request to https://registry.npmmirror.com/vue failed, reason: connect EACCES 119.39.74.142:443
+29 silly fetchPackageMetaData error for vue-router@^4.5.1 request to https://registry.npmmirror.com/vue-router failed, reason: connect EACCES 119.39.74.142:443
+30 silly fetchPackageMetaData error for @element-plus/icons-vue@^2.3.1 request to https://registry.npmmirror.com/@element-plus%2ficons-vue failed, reason: connect EACCES 119.39.74.142:443
+31 silly fetchPackageMetaData error for axios@^1.9.0 request to https://registry.npmmirror.com/axios failed, reason: connect EACCES 119.39.74.142:443
+32 silly fetchPackageMetaData error for element-plus@^2.9.9 request to https://registry.npmmirror.com/element-plus failed, reason: connect EACCES 119.39.74.142:443
+33 silly fetchPackageMetaData error for pinia@^2.3.1 request to https://registry.npmmirror.com/pinia failed, reason: connect EACCES 119.39.74.142:443
+34 silly fetchPackageMetaData error for pinia-plugin-persistedstate@^3.2.3 request to https://registry.npmmirror.com/pinia-plugin-persistedstate failed, reason: connect EACCES 119.39.74.142:443
+35 silly fetchPackageMetaData error for vue@^3.5.13 request to https://registry.npmmirror.com/vue failed, reason: connect EACCES 119.39.74.142:443
+36 silly fetchPackageMetaData error for vue-router@^4.5.1 request to https://registry.npmmirror.com/vue-router failed, reason: connect EACCES 119.39.74.142:443
+37 timing stage:rollbackFailedOptional Completed in 0ms
+38 timing stage:runTopLevelLifecycles Completed in 191ms
+39 silly saveTree sz-pc@0.0.1
+40 verbose type system
+41 verbose stack FetchError: request to https://registry.npmmirror.com/@element-plus%2ficons-vue failed, reason: connect EACCES 119.39.74.142:443
+41 verbose stack     at ClientRequest.<anonymous> (D:\sofeware\scoop\persist\nvm\nodejs\v14.18.0\node_modules\npm\node_modules\node-fetch-npm\src\index.js:68:14)
+41 verbose stack     at ClientRequest.emit (events.js:400:28)
+41 verbose stack     at TLSSocket.socketErrorListener (_http_client.js:475:9)
+41 verbose stack     at TLSSocket.emit (events.js:400:28)
+41 verbose stack     at emitErrorNT (internal/streams/destroy.js:106:8)
+41 verbose stack     at emitErrorCloseNT (internal/streams/destroy.js:74:3)
+41 verbose stack     at processTicksAndRejections (internal/process/task_queues.js:82:21)
+42 verbose cwd D:\project\library_system\sz-pc
+43 verbose Windows_NT 10.0.26200
+44 verbose argv "D:\\sofeware\\scoop\\apps\\nvm\\current\\nodejs\\nodejs\\node.exe" "D:\\sofeware\\scoop\\apps\\nvm\\current\\nodejs\\nodejs\\node_modules\\npm\\bin\\npm-cli.js" "install" "--cache" "D:\\project\\library_system\\.npm-cache"
+45 verbose node v14.18.0
+46 verbose npm  v6.14.15
+47 error code EACCES
+48 error errno EACCES
+49 error FetchError: request to https://registry.npmmirror.com/@element-plus%2ficons-vue failed, reason: connect EACCES 119.39.74.142:443
+49 error     at ClientRequest.<anonymous> (D:\sofeware\scoop\persist\nvm\nodejs\v14.18.0\node_modules\npm\node_modules\node-fetch-npm\src\index.js:68:14)
+49 error     at ClientRequest.emit (events.js:400:28)
+49 error     at TLSSocket.socketErrorListener (_http_client.js:475:9)
+49 error     at TLSSocket.emit (events.js:400:28)
+49 error     at emitErrorNT (internal/streams/destroy.js:106:8)
+49 error     at emitErrorCloseNT (internal/streams/destroy.js:74:3)
+49 error     at processTicksAndRejections (internal/process/task_queues.js:82:21)
+49 error  FetchError: request to https://registry.npmmirror.com/@element-plus%2ficons-vue failed, reason: connect EACCES 119.39.74.142:443
+49 error     at ClientRequest.<anonymous> (D:\sofeware\scoop\persist\nvm\nodejs\v14.18.0\node_modules\npm\node_modules\node-fetch-npm\src\index.js:68:14)
+49 error     at ClientRequest.emit (events.js:400:28)
+49 error     at TLSSocket.socketErrorListener (_http_client.js:475:9)
+49 error     at TLSSocket.emit (events.js:400:28)
+49 error     at emitErrorNT (internal/streams/destroy.js:106:8)
+49 error     at emitErrorCloseNT (internal/streams/destroy.js:74:3)
+49 error     at processTicksAndRejections (internal/process/task_queues.js:82:21) {
+49 error   type: 'system',
+49 error   errno: 'EACCES',
+49 error   code: 'EACCES',
+49 error   parent: 'sz-pc'
+49 error }
+50 error The operation was rejected by your operating system.
+50 error It's possible that the file was already in use (by a text editor or antivirus),
+50 error or that you lack permissions to access it.
+50 error
+50 error If you believe this might be a permissions issue, please double-check the
+50 error permissions of the file and its containing directories, or try running
+50 error the command again as root/Administrator.
+51 verbose exit [ 1, true ]
