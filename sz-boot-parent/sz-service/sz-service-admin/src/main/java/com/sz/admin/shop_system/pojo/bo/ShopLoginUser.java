@@ -1,4 +1,4 @@
-package com.sz.admin.shop_system.entity;
+package com.sz.admin.shop_system.pojo.bo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
