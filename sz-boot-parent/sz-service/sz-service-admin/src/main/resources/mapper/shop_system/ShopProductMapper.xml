@@ -208,4 +208,59 @@
         </choose>
     </update>
 
+    <select id="selectAgentRecommendProducts" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product
+        WHERE is_del = 0
+          AND is_show = 1
+          AND stock &gt; 0
+        <if test="categoryIdList != null and categoryIdList.size() &gt; 0">
+            AND cate_id IN
+            <foreach collection="categoryIdList" item="cid" open="(" separator="," close=")">
+                #{cid}
+            </foreach>
+        </if>
+        ORDER BY
+        <choose>
+            <when test="sort == 'sales'">
+                sales DESC, browse DESC, id DESC
+            </when>
+            <when test="sort == 'browse'">
+                browse DESC, sales DESC, id DESC
+            </when>
+            <otherwise>
+                is_hot DESC, sales DESC, browse DESC, id DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectAgentSearchProducts" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_product
+        WHERE is_del = 0
+          AND is_show = 1
+        <if test="keyword != null and keyword.trim() != ''">
+            AND (
+                product_name LIKE CONCAT('%', #{keyword}, '%')
+                OR keyword LIKE CONCAT('%', #{keyword}, '%')
+                OR product_info LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="categoryIdList != null and categoryIdList.size() &gt; 0">
+            AND cate_id IN
+            <foreach collection="categoryIdList" item="cid" open="(" separator="," close=")">
+                #{cid}
+            </foreach>
+        </if>
+        <if test="minPrice != null">
+            AND price &gt;= #{minPrice}
+        </if>
+        <if test="maxPrice != null">
+            AND price &lt;= #{maxPrice}
+        </if>
+        ORDER BY CASE WHEN stock &gt; 0 THEN 0 ELSE 1 END, is_hot DESC, sales DESC, browse DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>

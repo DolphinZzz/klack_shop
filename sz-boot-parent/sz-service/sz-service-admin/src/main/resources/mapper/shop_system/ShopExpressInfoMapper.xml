@@ -20,4 +20,12 @@
         id, oid, express_no, express_tmp_id, real_name, user_phone, user_address, status, create_time, update_time
     </sql>
 
+    <select id="selectLatestByOid" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_express_info
+        WHERE oid = #{oid}
+        ORDER BY create_time DESC, id DESC
+        LIMIT 1
+    </select>
+
 </mapper>

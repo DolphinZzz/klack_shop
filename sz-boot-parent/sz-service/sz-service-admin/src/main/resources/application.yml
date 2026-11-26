@@ -14,6 +14,7 @@ spring:
       - file:config/${spring.profiles.active}/page-helper.yml
       - file:config/${spring.profiles.active}/redis.yml
       - file:config/${spring.profiles.active}/sa-token.yml
+      - file:config/${spring.profiles.active}/agent.yml
   mvc:
     path-match:
       matching-strategy: ant_path_matcher

@@ -139,4 +139,21 @@
         </if>
         ORDER BY t1.create_time DESC, t1.id DESC
     </select>
+
+    <select id="selectAgentListByUid" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM shop_order_after_sale
+        WHERE uid = #{uid}
+          AND IFNULL(is_del, 0) = 0
+        <if test="orderNo != null and orderNo.trim() != ''">
+            AND order_no = #{orderNo}
+        </if>
+        <if test="serviceNo != null and serviceNo.trim() != ''">
+            AND service_no = #{serviceNo}
+        </if>
+        ORDER BY create_time DESC, id DESC
+        <if test="limit != null and limit &gt; 0">
+            LIMIT #{limit}
+        </if>
+    </select>
 </mapper>

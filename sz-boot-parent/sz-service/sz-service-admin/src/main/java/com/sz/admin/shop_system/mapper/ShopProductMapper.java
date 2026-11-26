@@ -44,4 +44,14 @@ public interface ShopProductMapper extends BaseMapper<ShopProduct> {
                               @Param("newStock") Integer newStock,
                               @Param("newVersion") Integer newVersion,
                               @Param("expectedVersion") Integer expectedVersion);
+
+    List<ShopProduct> selectAgentRecommendProducts(@Param("sort") String sort,
+                                                   @Param("categoryIdList") List<Integer> categoryIdList,
+                                                   @Param("limit") Integer limit);
+
+    List<ShopProduct> selectAgentSearchProducts(@Param("keyword") String keyword,
+                                                @Param("categoryIdList") List<Integer> categoryIdList,
+                                                @Param("minPrice") BigDecimal minPrice,
+                                                @Param("maxPrice") BigDecimal maxPrice,
+                                                @Param("limit") Integer limit);
 }

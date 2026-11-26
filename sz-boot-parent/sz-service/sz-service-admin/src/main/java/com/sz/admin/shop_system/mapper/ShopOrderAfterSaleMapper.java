@@ -39,4 +39,12 @@ public interface ShopOrderAfterSaleMapper extends BaseMapper<ShopOrderAfterSale>
      * 管理端售后分页查询（配合 PageHelper）
      */
     List<ShopOrderAfterSaleVO> selectAdminPageList(@Param("dto") ShopOrderAfterSaleDTO.ListQuery dto);
+
+    /**
+     * Agent 内网查询用户售后单列表
+     */
+    List<ShopOrderAfterSale> selectAgentListByUid(@Param("uid") Long uid,
+                                                  @Param("orderNo") String orderNo,
+                                                  @Param("serviceNo") String serviceNo,
+                                                  @Param("limit") Integer limit);
 }

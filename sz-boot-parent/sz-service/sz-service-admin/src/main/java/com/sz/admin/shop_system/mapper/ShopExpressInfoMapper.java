@@ -2,6 +2,7 @@ package com.sz.admin.shop_system.mapper;
 
 import com.mybatisflex.core.BaseMapper;
 import com.sz.admin.shop_system.pojo.po.ShopExpressInfo;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * <p>
@@ -9,5 +10,7 @@ import com.sz.admin.shop_system.pojo.po.ShopExpressInfo;
  * </p>
  */
 public interface ShopExpressInfoMapper extends BaseMapper<ShopExpressInfo> {
+
+    ShopExpressInfo selectLatestByOid(@Param("oid") Long oid);
 }
 

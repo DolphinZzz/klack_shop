@@ -3,6 +3,8 @@ package com.sz.admin.shop_system.service.impl;
 import cn.hutool.json.JSONUtil;
 import com.github.pagehelper.PageHelper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.sz.admin.shop_system.agent.pojo.dto.AgentMallDTO;
+import com.sz.admin.shop_system.agent.pojo.vo.AgentMallVO;
 import com.sz.admin.shop_system.constants.ShopOrderStatusConstant;
 import com.sz.admin.shop_system.constants.ShopPaymentConstant;
 import com.sz.admin.shop_system.enums.ShopOrderStatusEnum;
@@ -112,6 +114,9 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     private static final int ORDER_PAID_FAILED = 2;
     private static final String ORDER_PAYMENT_TTL_KEY_PREFIX = "shop:order:payment:ttl:";
     private static final String FLASH_RESERVE_KEY_PREFIX = "shop:flash:reserve:";
+    private static final String AGENT_ORDER_IDEMP_KEY_PREFIX = "shop:agent:order:idemp:";
+    private static final long AGENT_ORDER_IDEMP_TTL_HOURS = 24L;
+    private static final long AGENT_ORDER_LOCK_TTL_SECONDS = 30L;
     private static final int ORDER_TYPE_NORMAL = 0;
     private static final int ORDER_TYPE_FLASH = 1;
 
@@ -378,7 +383,12 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
 
     @Override
     public PageResult<ShopFrontOrderVO> frontPage(ShopOrderDTO.FrontList dto) {
-        long userId = StpUserUtil.getLoginIdAsLong();
+        return frontPageForUser(StpUserUtil.getLoginIdAsLong(), dto);
+    }
+
+    @Override
+    public PageResult<ShopFrontOrderVO> frontPageForUser(Long userId, ShopOrderDTO.FrontList dto) {
+        CommonResponseEnum.INVALID_TOKEN.assertTrue(userId == null || userId <= 0);
         ShopOrderDTO.FrontList query = dto == null ? new ShopOrderDTO.FrontList() : dto;
 
         List<ShopOrder> orderList = mapper.selectActiveListByUid(userId);
@@ -394,13 +404,48 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
 
     @Override
     public ShopFrontOrderDetailVO frontDetail(String orderNo) {
-        long userId = StpUserUtil.getLoginIdAsLong();
+        return frontDetailForUser(StpUserUtil.getLoginIdAsLong(), orderNo);
+    }
+
+    @Override
+    public ShopFrontOrderDetailVO frontDetailForUser(Long userId, String orderNo) {
+        CommonResponseEnum.INVALID_TOKEN.assertTrue(userId == null || userId <= 0);
+        CommonResponseEnum.INVALID.message("订单号不能为空").assertTrue(orderNo == null || orderNo.isBlank());
+
         ShopOrder order = requireFrontOrder(orderNo, userId);
         refreshFrontOrderPaymentState(order);
 
         ShopFrontOrderVO summary = assembleFrontOrderSummary(order);
         List<ShopOrderStatusVO> orderStatusList = loadOrderStatusTimeline(order.getId(), true);
         return assembleFrontOrderDetailVO(order, summary, orderStatusList);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public AgentMallVO.DirectOrderResult directCreateForAgent(Long userId, AgentMallDTO.DirectCreateOrder dto) {
+        validateDirectCreateRequest(userId, dto);
+
+        String idempKey = buildAgentOrderIdempKey(userId, dto.getIdempotencyKey());
+        AgentMallVO.DirectOrderResult cached = readAgentIdempotentOrder(idempKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        String lockKey = idempKey + ":lock";
+        boolean lockSuccess = Boolean.TRUE.equals(redisTemplate.opsForValue()
+                .setIfAbsent(lockKey, String.valueOf(userId), AGENT_ORDER_LOCK_TTL_SECONDS, TimeUnit.SECONDS));
+        CommonResponseEnum.INVALID.message("订单正在提交中，请稍后重试").assertTrue(!lockSuccess);
+        try {
+            AgentMallVO.DirectOrderResult doubleChecked = readAgentIdempotentOrder(idempKey);
+            if (doubleChecked != null) {
+                return doubleChecked;
+            }
+            AgentMallVO.DirectOrderResult created = executeDirectCreateForAgent(userId, dto);
+            redisTemplate.opsForValue().set(idempKey, JSONUtil.toJsonStr(created), AGENT_ORDER_IDEMP_TTL_HOURS, TimeUnit.HOURS);
+            return created;
+        } finally {
+            redisTemplate.delete(lockKey);
+        }
     }
 
     @Override
@@ -1983,6 +2028,131 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         if (address.getDistrict() != null && !address.getDistrict().isBlank()) parts.add(address.getDistrict().trim());
         if (address.getDetail() != null && !address.getDetail().isBlank()) parts.add(address.getDetail().trim());
         return parts.isEmpty() ? null : String.join(" ", parts);
+    }
+
+    private void validateDirectCreateRequest(Long userId, AgentMallDTO.DirectCreateOrder dto) {
+        CommonResponseEnum.INVALID_TOKEN.assertTrue(userId == null || userId <= 0);
+        CommonResponseEnum.INVALID.message("下单参数不能为空").assertNull(dto);
+        CommonResponseEnum.INVALID_ID.assertNull(dto.getProductId());
+        CommonResponseEnum.INVALID_ID.assertNull(dto.getSkuId());
+        CommonResponseEnum.INVALID.message("购买数量必须大于0").assertTrue(dto.getQuantity() == null || dto.getQuantity() <= 0);
+        CommonResponseEnum.INVALID.message("收货地址不能为空").assertTrue(dto.getAddressId() == null || dto.getAddressId() <= 0);
+        CommonResponseEnum.INVALID.message("幂等键不能为空")
+                .assertTrue(dto.getIdempotencyKey() == null || dto.getIdempotencyKey().isBlank());
+    }
+
+    private AgentMallVO.DirectOrderResult executeDirectCreateForAgent(Long userId, AgentMallDTO.DirectCreateOrder dto) {
+        LocalDateTime now = LocalDateTime.now();
+        ShopProduct product = shopProductService.getById(dto.getProductId());
+        CommonResponseEnum.INVALID.message("商品不存在或已下架")
+                .assertTrue(product == null
+                        || (product.getIsDel() != null && product.getIsDel() == 1)
+                        || product.getIsShow() == null
+                        || product.getIsShow() != 1);
+
+        ShopFlashSale activeFlashSale = shopFlashSaleService.getAvailableByProductId(dto.getProductId(), now);
+        CommonResponseEnum.INVALID.message("秒杀活动商品不支持客服直接下单，请前往秒杀页面抢购")
+                .assertTrue(activeFlashSale != null);
+
+        ShopProductAttrValue sku = shopProductAttrValueService.getById(dto.getSkuId());
+        CommonResponseEnum.INVALID.message("商品规格不存在或已下架")
+                .assertTrue(sku == null || (sku.getIsDel() != null && sku.getIsDel() == 1));
+        CommonResponseEnum.INVALID.message("商品规格与商品不匹配")
+                .assertTrue(sku.getProductId() == null || !dto.getProductId().equals(sku.getProductId()));
+
+        int quantity = dto.getQuantity();
+        int skuStock = sku.getStock() == null ? 0 : sku.getStock();
+        CommonResponseEnum.INVALID.message("商品规格库存不足").assertTrue(skuStock < quantity);
+        if (product.getStock() != null && product.getStock() < quantity) {
+            CommonResponseEnum.INVALID.message("商品库存不足").assertTrue(true);
+        }
+
+        ShopUserAddress address = requireUserAddress(userId, dto.getAddressId());
+
+        BigDecimal unitPrice = sku.getPrice() != null
+                ? sku.getPrice()
+                : (product.getPrice() == null ? BigDecimal.ZERO : product.getPrice());
+        CommonResponseEnum.INVALID.message("商品价格无效").assertTrue(unitPrice.compareTo(BigDecimal.ZERO) <= 0);
+        BigDecimal totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
+        BigDecimal freightPrice = resolveProductFreightPrice(product);
+        BigDecimal payPrice = totalPrice.add(freightPrice);
+
+        // 创建 status=2 的隐藏购物车快照，以便支付接口统一扣减库存且不污染用户购物车角标
+        ShopProductCart snapshotCart = new ShopProductCart();
+        snapshotCart.setUid(userId);
+        snapshotCart.setProductId(product.getId());
+        snapshotCart.setSkuId(sku.getId());
+        snapshotCart.setCartNum(quantity);
+        snapshotCart.setSeckillId(0);
+        snapshotCart.setBargainId(0);
+        snapshotCart.setStatus(2);
+        shopProductCartMapper.insert(snapshotCart);
+        CommonResponseEnum.INVALID.message("创建订单商品快照失败").assertNull(snapshotCart.getId());
+
+        String orderNo = SerialNumberGenerator.generateOrderNo();
+        ShopOrder order = new ShopOrder()
+                .setOrderId(orderNo)
+                .setUid(userId)
+                .setRealName(address.getRealName())
+                .setUserPhone(address.getPhone())
+                .setUserAddress(joinAddressWithSpaces(address))
+                .setCartIds(String.valueOf(snapshotCart.getId()))
+                .setTotalNum(quantity)
+                .setTotalPrice(totalPrice)
+                .setFreightPrice(freightPrice)
+                .setPayPrice(payPrice)
+                .setCouponPrice(BigDecimal.ZERO)
+                .setDeductionPrice(BigDecimal.ZERO)
+                .setUseIntegral(0)
+                .setPaid(ORDER_PAID_PENDING)
+                .setStatus(ShopOrderStatusEnum.CREATED.getCode())
+                .setSeckillId(0)
+                .setPinkId(0)
+                .setBargainId(0)
+                .setIsDel(0);
+        save(order);
+        saveOrderStatusLog(order.getId(), ShopOrderStatusConstant.CHANGE_TYPE_CREATE_ORDER, ShopOrderStatusConstant.CHANGE_MESSAGE_CREATE_ORDER);
+        initializeOrderPaymentCountdown(order);
+
+        AgentMallVO.DirectOrderResult result = new AgentMallVO.DirectOrderResult();
+        result.setOrderNo(orderNo);
+        result.setTotalPrice(totalPrice);
+        result.setFreightPrice(freightPrice);
+        result.setPayPrice(payPrice);
+        result.setRemainingSeconds(getPaymentTimeoutSeconds());
+        result.setPaymentUrl("/order_payment?orderNo=" + orderNo);
+        result.setPaid(ORDER_PAID_PENDING);
+        result.setStatus(ShopOrderStatusEnum.CREATED.getCode());
+        return result;
+    }
+
+    private static BigDecimal resolveProductFreightPrice(ShopProduct product) {
+        if (product.getIsPostage() != null && product.getIsPostage() == 1) {
+            return BigDecimal.ZERO;
+        }
+        if (product.getPostage() == null || product.getPostage().compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        return product.getPostage();
+    }
+
+    private String buildAgentOrderIdempKey(Long userId, String idempotencyKey) {
+        return AGENT_ORDER_IDEMP_KEY_PREFIX + userId + ":" + idempotencyKey.trim();
+    }
+
+    private AgentMallVO.DirectOrderResult readAgentIdempotentOrder(String idempKey) {
+        Object cached = redisTemplate.opsForValue().get(idempKey);
+        if (cached == null) {
+            return null;
+        }
+        if (cached instanceof AgentMallVO.DirectOrderResult result) {
+            return result;
+        }
+        String raw = String.valueOf(cached).trim();
+        if (raw.isEmpty()) {
+            return null;
+        }
+        return JSONUtil.toBean(raw, AgentMallVO.DirectOrderResult.class);
     }
 
     @Data

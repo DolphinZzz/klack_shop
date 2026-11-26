@@ -1,6 +1,8 @@
 package com.sz.admin.shop_system.service;
 
 import com.mybatisflex.core.service.IService;
+import com.sz.admin.shop_system.agent.pojo.dto.AgentMallDTO;
+import com.sz.admin.shop_system.agent.pojo.vo.AgentMallVO;
 import com.sz.admin.shop_system.pojo.dto.*;
 import com.sz.admin.shop_system.pojo.vo.ShopOrderCreateVO;
 import com.sz.admin.shop_system.pojo.po.ShopOrder;
@@ -45,7 +47,13 @@ public interface ShopOrderService extends IService<ShopOrder> {
 
     PageResult<ShopFrontOrderVO> frontPage(ShopOrderDTO.FrontList dto);
 
+    PageResult<ShopFrontOrderVO> frontPageForUser(Long userId, ShopOrderDTO.FrontList dto);
+
     ShopFrontOrderDetailVO frontDetail(String orderNo);
+
+    ShopFrontOrderDetailVO frontDetailForUser(Long userId, String orderNo);
+
+    AgentMallVO.DirectOrderResult directCreateForAgent(Long userId, AgentMallDTO.DirectCreateOrder dto);
 
     PageResult<ShopFrontProductCommentVO> frontCommentPage(ShopOrderDTO.FrontCommentList dto);
 
