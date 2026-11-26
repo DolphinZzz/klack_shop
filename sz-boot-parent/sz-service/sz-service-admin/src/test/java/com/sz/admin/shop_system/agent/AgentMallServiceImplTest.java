@@ -21,13 +21,16 @@ import com.sz.admin.shop_system.pojo.po.ShopExpressInfo;
 import com.sz.admin.shop_system.pojo.po.ShopExpressTemplate;
 import com.sz.admin.shop_system.pojo.po.ShopFlashSale;
 import com.sz.admin.shop_system.pojo.po.ShopOrder;
+import com.sz.admin.shop_system.pojo.po.ShopOrderAfterSale;
 import com.sz.admin.shop_system.pojo.po.ShopOrderStatus;
 import com.sz.admin.shop_system.pojo.po.ShopProduct;
 import com.sz.admin.shop_system.pojo.po.ShopProductAttrValue;
 import com.sz.admin.shop_system.pojo.po.ShopProductCart;
 import com.sz.admin.shop_system.pojo.po.ShopUserAddress;
+import com.sz.admin.shop_system.pojo.vo.ShopFrontOrderVO;
 import com.sz.admin.shop_system.pojo.vo.ShopOrderStatusVO;
 import com.sz.admin.shop_system.pojo.vo.ShopProductCartAndSkuVO;
+import com.sz.core.common.entity.PageResult;
 import com.sz.admin.shop_system.properties.ShopPaymentProperties;
 import com.sz.admin.shop_system.service.ShopCategoryService;
 import com.sz.admin.shop_system.service.ShopExpressService;
@@ -44,11 +47,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -111,12 +120,19 @@ class AgentMallServiceImplTest {
     private ShopFlashSaleService shopFlashSaleService;
     @Mock
     private ShopCategoryService shopCategoryService;
+    @Mock
+    private TransactionTemplate transactionTemplate;
 
     private ShopOrderServiceImpl shopOrderService;
     private AgentMallServiceImpl agentMallService;
 
     @BeforeEach
     void setUp() {
+        lenient().when(transactionTemplate.execute(any())).thenAnswer(inv -> {
+            TransactionCallback<?> callback = inv.getArgument(0);
+            return callback.doInTransaction(mock(TransactionStatus.class));
+        });
+
         shopOrderService = new ShopOrderServiceImpl(
                 shopUserService,
                 shopProductCartMapper,
@@ -137,7 +153,8 @@ class AgentMallServiceImplTest {
                 shopOrderAfterSaleMapper,
                 redisTemplate,
                 shopPaymentProperties,
-                shopFlashSaleService
+                shopFlashSaleService,
+                transactionTemplate
         );
         ReflectionTestUtils.setField(shopOrderService, "mapper", shopOrderMapper);
 
@@ -161,7 +178,7 @@ class AgentMallServiceImplTest {
     void directCreate_rejectsOtherUsersAddress() {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("shop:agent:order:idemp:101:draft-idor-1")).thenReturn(null);
-        when(valueOperations.setIfAbsent(eq("shop:agent:order:idemp:101:draft-idor-1:lock"), eq("101"), eq(30L), eq(TimeUnit.SECONDS)))
+        when(valueOperations.setIfAbsent(eq("shop:agent:order:idemp:101:draft-idor-1:lock"), anyString(), eq(30L), eq(TimeUnit.SECONDS)))
                 .thenReturn(true);
 
         ShopProduct product = buildActiveProduct(10L, 1, BigDecimal.ZERO);
@@ -176,14 +193,15 @@ class AgentMallServiceImplTest {
         assertTrue(ex.getMessage().contains("收货地址"));
         verify(shopOrderMapper, never()).insert(any(ShopOrder.class), anyBoolean());
         verify(shopProductCartMapper, never()).insert(any(ShopProductCart.class));
-        verify(redisTemplate).delete("shop:agent:order:idemp:101:draft-idor-1:lock");
+        verify(redisTemplate, never()).delete(any(Object.class));
+        verify(redisTemplate).execute(any(RedisScript.class), eq(List.of("shop:agent:order:idemp:101:draft-idor-1:lock")), anyString());
     }
 
     @Test
     void directCreate_rejectsActiveFlashSaleProduct() {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("shop:agent:order:idemp:101:draft-flash-1")).thenReturn(null);
-        when(valueOperations.setIfAbsent(eq("shop:agent:order:idemp:101:draft-flash-1:lock"), eq("101"), eq(30L), eq(TimeUnit.SECONDS)))
+        when(valueOperations.setIfAbsent(eq("shop:agent:order:idemp:101:draft-flash-1:lock"), anyString(), eq(30L), eq(TimeUnit.SECONDS)))
                 .thenReturn(true);
 
         ShopProduct product = buildActiveProduct(20L, 1, BigDecimal.ZERO);
@@ -199,7 +217,8 @@ class AgentMallServiceImplTest {
         assertTrue(ex.getMessage().contains("秒杀"));
         verify(shopOrderMapper, never()).insert(any(ShopOrder.class), anyBoolean());
         verify(shopProductAttrValueService, never()).getById(any());
-        verify(redisTemplate).delete("shop:agent:order:idemp:101:draft-flash-1:lock");
+        verify(redisTemplate, never()).delete(any(Object.class));
+        verify(redisTemplate).execute(any(RedisScript.class), eq(List.of("shop:agent:order:idemp:101:draft-flash-1:lock")), anyString());
     }
 
     @Test
@@ -216,7 +235,16 @@ class AgentMallServiceImplTest {
             redisStore.put(inv.getArgument(0), inv.getArgument(1));
             return null;
         }).when(valueOperations).set(any(), any(), anyLong(), any(TimeUnit.class));
-        when(redisTemplate.delete(any(Object.class))).thenAnswer(inv -> redisStore.remove(inv.getArgument(0)) != null);
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), any())).thenAnswer(inv -> {
+            List<?> keys = inv.getArgument(1);
+            Object lockKey = keys.get(0);
+            Object expectedToken = inv.getArgument(2);
+            if (expectedToken != null && expectedToken.equals(redisStore.get(lockKey))) {
+                redisStore.remove(lockKey);
+                return 1L;
+            }
+            return 0L;
+        });
 
         ShopProduct product = buildActiveProduct(10L, 0, new BigDecimal("12.00"));
         when(shopProductService.getById(10L)).thenReturn(product);
@@ -275,8 +303,24 @@ class AgentMallServiceImplTest {
         assertEquals(0, new BigDecimal("810.00").compareTo(savedOrder.getPayPrice()));
 
         verify(shopProductCartMapper, times(1)).insert(any(ShopProductCart.class));
-        verify(valueOperations).set(eq("shop:order:payment:ttl:" + first.getOrderNo()), eq(first.getOrderNo()), eq(1800L), eq(TimeUnit.SECONDS));
-        verify(valueOperations).set(eq("shop:agent:order:idemp:101:draft-abc"), anyString(), eq(24L), eq(TimeUnit.HOURS));
+
+        ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> unlockTokenCaptor = ArgumentCaptor.forClass(String.class);
+        InOrder inOrder = inOrder(transactionTemplate, valueOperations, redisTemplate);
+        inOrder.verify(valueOperations).setIfAbsent(
+                eq("shop:agent:order:idemp:101:draft-abc:lock"),
+                tokenCaptor.capture(),
+                eq(30L),
+                eq(TimeUnit.SECONDS)
+        );
+        inOrder.verify(transactionTemplate).execute(any());
+        inOrder.verify(valueOperations).set(eq("shop:order:payment:ttl:" + first.getOrderNo()), eq(first.getOrderNo()), eq(1800L), eq(TimeUnit.SECONDS));
+        inOrder.verify(valueOperations).set(eq("shop:agent:order:idemp:101:draft-abc"), anyString(), eq(24L), eq(TimeUnit.HOURS));
+        inOrder.verify(redisTemplate).execute(any(RedisScript.class), eq(List.of("shop:agent:order:idemp:101:draft-abc:lock")), unlockTokenCaptor.capture());
+
+        assertNotEquals("101", tokenCaptor.getValue());
+        assertEquals(tokenCaptor.getValue(), unlockTokenCaptor.getValue());
+        verify(redisTemplate, never()).delete(any(Object.class));
 
         ArgumentCaptor<ShopOrderStatus> statusCaptor = ArgumentCaptor.forClass(ShopOrderStatus.class);
         verify(shopOrderStatusService, times(1)).save(statusCaptor.capture());
@@ -286,6 +330,26 @@ class AgentMallServiceImplTest {
         verify(shopProductAttrValueService, never()).updateById(any());
         verify(shopProductService, never()).updateById(any());
         verifyNoInteractions(shopProductAttrValueMapper);
+
+        AgentMallDTO.DirectCreateOrder differentPayload = buildDirectOrderRequest(10L, 100L, 3, 55L, "draft-abc");
+        BusinessException mismatchEx = assertThrows(BusinessException.class,
+                () -> agentMallService.directCreateOrder(101L, differentPayload));
+        assertTrue(mismatchEx.getMessage().contains("幂等键"));
+    }
+
+    @Test
+    void directCreate_doesNotWriteRedisCacheWhenTransactionRollsBack() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("shop:agent:order:idemp:101:draft-rollback-1")).thenReturn(null);
+        when(valueOperations.setIfAbsent(eq("shop:agent:order:idemp:101:draft-rollback-1:lock"), anyString(), eq(30L), eq(TimeUnit.SECONDS)))
+                .thenReturn(true);
+        doThrow(new IllegalStateException("db commit failed")).when(transactionTemplate).execute(any());
+
+        AgentMallDTO.DirectCreateOrder dto = buildDirectOrderRequest(10L, 100L, 1, 55L, "draft-rollback-1");
+
+        assertThrows(IllegalStateException.class, () -> agentMallService.directCreateOrder(101L, dto));
+        verify(valueOperations, never()).set(any(), any(), anyLong(), any(TimeUnit.class));
+        verify(redisTemplate).execute(any(RedisScript.class), eq(List.of("shop:agent:order:idemp:101:draft-rollback-1:lock")), anyString());
     }
 
     @Test
@@ -310,7 +374,7 @@ class AgentMallServiceImplTest {
                 .setPaid(1)
                 .setPayTime(paidAt)
                 .setPayType("yue")
-                .setStatus(2)
+                .setStatus(1)
                 .setDeliveryId(3L)
                 .setExpressNo("EXP202611260001")
                 .setSeckillId(0)
@@ -368,8 +432,9 @@ class AgentMallServiceImplTest {
         AgentMallVO.OrderDetail detail = agentMallService.getOrderDetail(101L, orderNo);
 
         assertEquals(orderNo, detail.getOrderNo());
-        assertEquals(2, detail.getStatus());
+        assertEquals(1, detail.getStatus());
         assertEquals("已发货", detail.getStatusDesc());
+        assertEquals("待收货", detail.getDisplayStatus());
         assertFalse(Boolean.TRUE.equals(detail.getTrackingSupported()));
         assertNotNull(detail.getShipment());
         assertEquals("EXP202611260001", detail.getShipment().getExpressNo());
@@ -422,6 +487,123 @@ class AgentMallServiceImplTest {
         assertEquals(2L, addresses.get(0).getId());
         assertEquals(1, addresses.get(0).getIsDefault());
         assertEquals("上海市 上海市 浦东新区 张江高科88号", addresses.get(0).getFullAddress());
+    }
+
+    @Test
+    void directCreateForAgent_doesNotWrapRedisLockAndCacheInTransactional() throws Exception {
+        assertFalse(ShopOrderServiceImpl.class
+                .getMethod("directCreateForAgent", Long.class, AgentMallDTO.DirectCreateOrder.class)
+                .isAnnotationPresent(Transactional.class));
+    }
+
+    @Test
+    void getOrderDetail_mapsRealPaidStatusAndRefundStatesAccurately() {
+        String pendingShipNo = "ORDER_PENDING_SHIP";
+        ShopOrder pendingShipOrder = new ShopOrder()
+                .setId(701L)
+                .setOrderId(pendingShipNo)
+                .setUid(101L)
+                .setPaid(1)
+                .setStatus(0)
+                .setCartIds("")
+                .setPayPrice(new BigDecimal("199.00"))
+                .setFreightPrice(BigDecimal.ZERO)
+                .setCreateTime(LocalDateTime.now());
+        when(shopOrderMapper.selectByOrderNoAndUid(pendingShipNo, 101L)).thenReturn(pendingShipOrder);
+        when(shopOrderStatusService.list(any(ShopOrderStatusDTO.ListQuery.class))).thenReturn(new ArrayList<>());
+        when(shopExpressInfoMapper.selectLatestByOid(701L)).thenReturn(null);
+        when(shopOrderAfterSaleMapper.selectActiveByOrderId(701L)).thenReturn(null);
+
+        AgentMallVO.OrderDetail pendingShipDetail = agentMallService.getOrderDetail(101L, pendingShipNo);
+        assertEquals("待发货", pendingShipDetail.getStatusDesc());
+
+        String refundedNo = "ORDER_REFUNDED";
+        ShopOrder refundedOrder = new ShopOrder()
+                .setId(702L)
+                .setOrderId(refundedNo)
+                .setUid(101L)
+                .setPaid(1)
+                .setStatus(2)
+                .setRefundStatus(2)
+                .setCartIds("")
+                .setPayPrice(new BigDecimal("199.00"))
+                .setFreightPrice(BigDecimal.ZERO)
+                .setCreateTime(LocalDateTime.now());
+        ShopOrderAfterSale afterSale = new ShopOrderAfterSale()
+                .setId(30L)
+                .setServiceNo("AS001")
+                .setOrderId(702L)
+                .setOrderNo(refundedNo)
+                .setStatus(3);
+        when(shopOrderMapper.selectByOrderNoAndUid(refundedNo, 101L)).thenReturn(refundedOrder);
+        when(shopExpressInfoMapper.selectLatestByOid(702L)).thenReturn(null);
+        when(shopOrderAfterSaleMapper.selectActiveByOrderId(702L)).thenReturn(afterSale);
+
+        AgentMallVO.OrderDetail refundedDetail = agentMallService.getOrderDetail(101L, refundedNo);
+        assertEquals("已退款", refundedDetail.getStatusDesc());
+
+        String evaluatedNo = "ORDER_EVALUATED";
+        ShopOrder evaluatedOrder = new ShopOrder()
+                .setId(703L)
+                .setOrderId(evaluatedNo)
+                .setUid(101L)
+                .setPaid(1)
+                .setStatus(2)
+                .setCartIds("")
+                .setPayPrice(new BigDecimal("199.00"))
+                .setFreightPrice(BigDecimal.ZERO)
+                .setCreateTime(LocalDateTime.now());
+        when(shopOrderMapper.selectByOrderNoAndUid(evaluatedNo, 101L)).thenReturn(evaluatedOrder);
+        when(shopExpressInfoMapper.selectLatestByOid(703L)).thenReturn(null);
+        when(shopOrderAfterSaleMapper.selectActiveByOrderId(703L)).thenReturn(null);
+        assertEquals("待评价", agentMallService.getOrderDetail(101L, evaluatedNo).getStatusDesc());
+
+        String completedNo = "ORDER_COMPLETED";
+        ShopOrder completedOrder = new ShopOrder()
+                .setId(704L)
+                .setOrderId(completedNo)
+                .setUid(101L)
+                .setPaid(1)
+                .setStatus(3)
+                .setCartIds("")
+                .setPayPrice(new BigDecimal("199.00"))
+                .setFreightPrice(BigDecimal.ZERO)
+                .setCreateTime(LocalDateTime.now());
+        when(shopOrderMapper.selectByOrderNoAndUid(completedNo, 101L)).thenReturn(completedOrder);
+        when(shopExpressInfoMapper.selectLatestByOid(704L)).thenReturn(null);
+        when(shopOrderAfterSaleMapper.selectActiveByOrderId(704L)).thenReturn(null);
+        assertEquals("已完成", agentMallService.getOrderDetail(101L, completedNo).getStatusDesc());
+    }
+
+    @Test
+    void listUserOrders_refundTabIncludesOrdersBeyond200WithoutTruncation() {
+        List<ShopOrder> orders = new ArrayList<>();
+        for (int i = 1; i <= 205; i++) {
+            orders.add(new ShopOrder()
+                    .setId((long) i)
+                    .setOrderId("ORDER_" + i)
+                    .setUid(101L)
+                    .setPaid(1)
+                    .setStatus(2)
+                    .setPayPrice(new BigDecimal("99.00"))
+                    .setCreateTime(LocalDateTime.now().minusMinutes(i)));
+        }
+        when(shopOrderMapper.selectActiveListByUid(101L)).thenReturn(orders);
+        ShopOrderAfterSale afterSale205 = new ShopOrderAfterSale()
+                .setId(99L)
+                .setServiceNo("AS_205")
+                .setOrderId(205L)
+                .setOrderNo("ORDER_205")
+                .setStatus(0);
+        when(shopOrderAfterSaleMapper.selectActiveByOrderId(anyLong())).thenAnswer(inv -> {
+            Long orderId = inv.getArgument(0);
+            return Long.valueOf(205L).equals(orderId) ? afterSale205 : null;
+        });
+
+        PageResult<ShopFrontOrderVO> page = agentMallService.listUserOrders(101L, "refund", null, 1, 5);
+        assertEquals(1L, page.getTotal());
+        assertEquals(1, page.getRows().size());
+        assertEquals("ORDER_205", page.getRows().get(0).getOrderNo());
     }
 
     private static ShopProduct buildActiveProduct(Long id, int isPostage, BigDecimal postage) {

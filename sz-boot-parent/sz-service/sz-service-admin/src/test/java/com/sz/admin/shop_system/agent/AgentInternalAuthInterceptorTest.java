@@ -1,10 +1,18 @@
 package com.sz.admin.shop_system.agent;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.sz.admin.shop_system.agent.config.AgentInternalAuthInterceptor;
 import com.sz.admin.shop_system.agent.config.AgentProperties;
+import com.sz.admin.shop_system.agent.controller.AgentInternalController;
+import com.sz.core.common.annotation.DebounceIgnore;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -56,5 +64,24 @@ class AgentInternalAuthInterceptorTest {
 
         assertTrue(interceptor.preHandle(validReq, validRes, new Object()));
         assertEquals(200, validRes.getStatus());
+    }
+
+    @Test
+    void agentInternalController_marksAllEndpointsWithSaIgnoreAndDebounceIgnore() {
+        int endpointCount = 0;
+        for (Method method : AgentInternalController.class.getDeclaredMethods()) {
+            boolean isEndpoint = method.isAnnotationPresent(GetMapping.class)
+                    || method.isAnnotationPresent(PostMapping.class)
+                    || method.isAnnotationPresent(RequestMapping.class);
+            if (!isEndpoint) {
+                continue;
+            }
+            endpointCount++;
+            assertTrue(method.isAnnotationPresent(SaIgnore.class),
+                    () -> method.getName() + " must carry @SaIgnore");
+            assertTrue(method.isAnnotationPresent(DebounceIgnore.class),
+                    () -> method.getName() + " must carry @DebounceIgnore");
+        }
+        assertEquals(8, endpointCount);
     }
 }

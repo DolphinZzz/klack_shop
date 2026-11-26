@@ -72,8 +72,10 @@ import com.sz.security.util.StpUserUtil;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -92,6 +94,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -117,6 +120,10 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     private static final String AGENT_ORDER_IDEMP_KEY_PREFIX = "shop:agent:order:idemp:";
     private static final long AGENT_ORDER_IDEMP_TTL_HOURS = 24L;
     private static final long AGENT_ORDER_LOCK_TTL_SECONDS = 30L;
+    private static final DefaultRedisScript<Long> AGENT_UNLOCK_SCRIPT = new DefaultRedisScript<>(
+            "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+            Long.class
+    );
     private static final int ORDER_TYPE_NORMAL = 0;
     private static final int ORDER_TYPE_FLASH = 1;
 
@@ -140,6 +147,7 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     private final RedisTemplate<Object, Object> redisTemplate;
     private final ShopPaymentProperties shopPaymentProperties;
     private final ShopFlashSaleService shopFlashSaleService;
+    private final TransactionTemplate transactionTemplate;
 
     // ==================== 一、业务编排层 ====================
 
@@ -421,30 +429,35 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public AgentMallVO.DirectOrderResult directCreateForAgent(Long userId, AgentMallDTO.DirectCreateOrder dto) {
         validateDirectCreateRequest(userId, dto);
 
         String idempKey = buildAgentOrderIdempKey(userId, dto.getIdempotencyKey());
-        AgentMallVO.DirectOrderResult cached = readAgentIdempotentOrder(idempKey);
+        String fingerprint = buildDirectOrderFingerprint(dto);
+        AgentMallVO.DirectOrderResult cached = readAgentIdempotentOrder(idempKey, fingerprint);
         if (cached != null) {
             return cached;
         }
 
         String lockKey = idempKey + ":lock";
+        String lockToken = UUID.randomUUID().toString();
         boolean lockSuccess = Boolean.TRUE.equals(redisTemplate.opsForValue()
-                .setIfAbsent(lockKey, String.valueOf(userId), AGENT_ORDER_LOCK_TTL_SECONDS, TimeUnit.SECONDS));
+                .setIfAbsent(lockKey, lockToken, AGENT_ORDER_LOCK_TTL_SECONDS, TimeUnit.SECONDS));
         CommonResponseEnum.INVALID.message("订单正在提交中，请稍后重试").assertTrue(!lockSuccess);
         try {
-            AgentMallVO.DirectOrderResult doubleChecked = readAgentIdempotentOrder(idempKey);
+            AgentMallVO.DirectOrderResult doubleChecked = readAgentIdempotentOrder(idempKey, fingerprint);
             if (doubleChecked != null) {
                 return doubleChecked;
             }
-            AgentMallVO.DirectOrderResult created = executeDirectCreateForAgent(userId, dto);
-            redisTemplate.opsForValue().set(idempKey, JSONUtil.toJsonStr(created), AGENT_ORDER_IDEMP_TTL_HOURS, TimeUnit.HOURS);
+            AgentMallVO.DirectOrderResult created = transactionTemplate.execute(
+                    status -> executeDirectCreateForAgent(userId, dto));
+            CommonResponseEnum.INVALID.message("创建订单失败，请稍后重试").assertNull(created);
+            initializeOrderPaymentCountdown(created.getOrderNo());
+            AgentIdempRecord record = new AgentIdempRecord(fingerprint, created);
+            redisTemplate.opsForValue().set(idempKey, JSONUtil.toJsonStr(record), AGENT_ORDER_IDEMP_TTL_HOURS, TimeUnit.HOURS);
             return created;
         } finally {
-            redisTemplate.delete(lockKey);
+            releaseAgentOrderLock(lockKey, lockToken);
         }
     }
 
@@ -1544,10 +1557,17 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
     }
 
     private void initializeOrderPaymentCountdown(ShopOrder order) {
-        if (order == null || order.getOrderId() == null || order.getOrderId().isBlank()) {
+        if (order == null) {
             return;
         }
-        redisTemplate.opsForValue().set(buildOrderPaymentKey(order.getOrderId()), order.getOrderId(),
+        initializeOrderPaymentCountdown(order.getOrderId());
+    }
+
+    private void initializeOrderPaymentCountdown(String orderNo) {
+        if (orderNo == null || orderNo.isBlank()) {
+            return;
+        }
+        redisTemplate.opsForValue().set(buildOrderPaymentKey(orderNo), orderNo,
                 getPaymentTimeoutSeconds(), TimeUnit.SECONDS);
     }
 
@@ -1852,7 +1872,11 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         if (tab == null || tab.isBlank() || "all".equalsIgnoreCase(tab.trim())) {
             return true;
         }
-        return tab.trim().equalsIgnoreCase(order.getDisplayTab());
+        String normalized = tab.trim().toLowerCase(Locale.ROOT);
+        if ("refund".equals(normalized)) {
+            return order.getAfterSaleStatus() != null;
+        }
+        return normalized.equals(order.getDisplayTab());
     }
 
     private static boolean matchesFrontOrderKeyword(ShopFrontOrderVO order, String keyword) {
@@ -2112,7 +2136,6 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
                 .setIsDel(0);
         save(order);
         saveOrderStatusLog(order.getId(), ShopOrderStatusConstant.CHANGE_TYPE_CREATE_ORDER, ShopOrderStatusConstant.CHANGE_MESSAGE_CREATE_ORDER);
-        initializeOrderPaymentCountdown(order);
 
         AgentMallVO.DirectOrderResult result = new AgentMallVO.DirectOrderResult();
         result.setOrderNo(orderNo);
@@ -2140,10 +2163,22 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         return AGENT_ORDER_IDEMP_KEY_PREFIX + userId + ":" + idempotencyKey.trim();
     }
 
-    private AgentMallVO.DirectOrderResult readAgentIdempotentOrder(String idempKey) {
+    private static String buildDirectOrderFingerprint(AgentMallDTO.DirectCreateOrder dto) {
+        return dto.getProductId() + ":" + dto.getSkuId() + ":" + dto.getQuantity() + ":" + dto.getAddressId();
+    }
+
+    private void releaseAgentOrderLock(String lockKey, String lockToken) {
+        redisTemplate.execute(AGENT_UNLOCK_SCRIPT, Collections.singletonList(lockKey), lockToken);
+    }
+
+    private AgentMallVO.DirectOrderResult readAgentIdempotentOrder(String idempKey, String expectedFingerprint) {
         Object cached = redisTemplate.opsForValue().get(idempKey);
         if (cached == null) {
             return null;
+        }
+        if (cached instanceof AgentIdempRecord record) {
+            assertFingerprintMatches(record.getFingerprint(), expectedFingerprint);
+            return record.getResult();
         }
         if (cached instanceof AgentMallVO.DirectOrderResult result) {
             return result;
@@ -2152,7 +2187,32 @@ public class ShopOrderServiceImpl extends ServiceImpl<ShopOrderMapper, ShopOrder
         if (raw.isEmpty()) {
             return null;
         }
+        AgentIdempRecord record = JSONUtil.toBean(raw, AgentIdempRecord.class);
+        if (record != null && record.getResult() != null) {
+            assertFingerprintMatches(record.getFingerprint(), expectedFingerprint);
+            return record.getResult();
+        }
         return JSONUtil.toBean(raw, AgentMallVO.DirectOrderResult.class);
+    }
+
+    private static void assertFingerprintMatches(String actualFingerprint, String expectedFingerprint) {
+        CommonResponseEnum.INVALID.message("幂等键已被其他下单参数占用，请重新确认订单")
+                .assertTrue(actualFingerprint != null && !actualFingerprint.equals(expectedFingerprint));
+    }
+
+    @Data
+    private static class AgentIdempRecord {
+        private String fingerprint;
+        private AgentMallVO.DirectOrderResult result;
+
+        @SuppressWarnings("unused")
+        AgentIdempRecord() {
+        }
+
+        AgentIdempRecord(String fingerprint, AgentMallVO.DirectOrderResult result) {
+            this.fingerprint = fingerprint;
+            this.result = result;
+        }
     }
 
     @Data

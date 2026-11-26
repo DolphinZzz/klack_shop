@@ -5,7 +5,6 @@ import com.sz.admin.shop_system.agent.pojo.vo.AgentMallVO;
 import com.sz.admin.shop_system.agent.service.AgentMallService;
 import com.sz.admin.shop_system.enums.ShopOrderAfterSaleStatusEnum;
 import com.sz.admin.shop_system.enums.ShopOrderAfterSaleTypeEnum;
-import com.sz.admin.shop_system.enums.ShopOrderStatusEnum;
 import com.sz.admin.shop_system.mapper.ShopExpressInfoMapper;
 import com.sz.admin.shop_system.mapper.ShopExpressTemplateMapper;
 import com.sz.admin.shop_system.mapper.ShopOrderAfterSaleMapper;
@@ -133,20 +132,6 @@ public class AgentMallServiceImpl implements AgentMallService {
         int limitNum = normalizeLimit(limit, 5);
         String normalizedTab = normalizeOrderTab(tab);
 
-        if ("refund".equals(normalizedTab)) {
-            ShopOrderDTO.FrontList allQuery = new ShopOrderDTO.FrontList();
-            allQuery.setTab("all");
-            allQuery.setKeyword(keyword);
-            allQuery.setPage(1);
-            allQuery.setLimit(200);
-            PageResult<ShopFrontOrderVO> allResult = shopOrderService.frontPageForUser(userId, allQuery);
-            List<ShopFrontOrderVO> refundRows = allResult.getRows() == null ? Collections.emptyList()
-                    : allResult.getRows().stream()
-                    .filter(item -> item.getAfterSaleStatus() != null)
-                    .collect(Collectors.toList());
-            return slicePage(refundRows, pageNum, limitNum);
-        }
-
         ShopOrderDTO.FrontList query = new ShopOrderDTO.FrontList();
         query.setTab(normalizedTab);
         query.setKeyword(keyword);
@@ -176,7 +161,7 @@ public class AgentMallServiceImpl implements AgentMallService {
             shipmentInfo = buildShipmentInfo(null, frontDetail);
         }
 
-        return assembleOrderDetail(frontDetail, shipmentInfo, afterSaleSummary);
+        return assembleOrderDetail(frontDetail, order, shipmentInfo, afterSaleSummary);
     }
 
     @Override
@@ -342,14 +327,14 @@ public class AgentMallServiceImpl implements AgentMallService {
     }
 
     private AgentMallVO.OrderDetail assembleOrderDetail(ShopFrontOrderDetailVO frontDetail,
+                                                        ShopOrder order,
                                                         AgentMallVO.ShipmentInfo shipmentInfo,
                                                         AgentMallVO.AfterSaleSummary afterSaleSummary) {
         AgentMallVO.OrderDetail detail = new AgentMallVO.OrderDetail();
         detail.setOrderNo(frontDetail.getOrderNo());
         detail.setPaid(frontDetail.getPaid());
         detail.setStatus(frontDetail.getStatus());
-        ShopOrderStatusEnum statusEnum = ShopOrderStatusEnum.fromCode(frontDetail.getStatus());
-        detail.setStatusDesc(statusEnum == null ? frontDetail.getDisplayStatus() : statusEnum.getDesc());
+        detail.setStatusDesc(resolveOrderStatusDesc(frontDetail, order));
         detail.setDisplayTab(frontDetail.getDisplayTab());
         detail.setDisplayStatus(frontDetail.getDisplayStatus());
         detail.setOrderType(frontDetail.getOrderType());
@@ -438,6 +423,37 @@ public class AgentMallServiceImpl implements AgentMallService {
         return Math.min(limit, MAX_LIST_LIMIT);
     }
 
+    private static String resolveOrderStatusDesc(ShopFrontOrderDetailVO frontDetail, ShopOrder order) {
+        if (order != null) {
+            Integer refundStatus = order.getRefundStatus();
+            if (Integer.valueOf(2).equals(refundStatus)) {
+                return "已退款";
+            }
+            if (Integer.valueOf(1).equals(refundStatus)) {
+                return "退款中";
+            }
+        }
+        Integer paid = frontDetail.getPaid();
+        Integer status = frontDetail.getStatus();
+        if ((paid != null && paid == 2) || (status != null && status == 5)) {
+            return "已取消";
+        }
+        if (paid == null || paid == 0) {
+            return "待付款";
+        }
+        if (paid == 1) {
+            int statusCode = status == null ? 0 : status;
+            return switch (statusCode) {
+                case 0 -> "待发货";
+                case 1 -> "已发货";
+                case 2 -> "待评价";
+                case 3 -> "已完成";
+                default -> frontDetail.getDisplayStatus();
+            };
+        }
+        return frontDetail.getDisplayStatus();
+    }
+
     private static String joinAddress(ShopUserAddress address) {
         List<String> parts = new ArrayList<>();
         if (address.getProvince() != null && !address.getProvince().isBlank()) parts.add(address.getProvince().trim());
@@ -445,13 +461,5 @@ public class AgentMallServiceImpl implements AgentMallService {
         if (address.getDistrict() != null && !address.getDistrict().isBlank()) parts.add(address.getDistrict().trim());
         if (address.getDetail() != null && !address.getDetail().isBlank()) parts.add(address.getDetail().trim());
         return String.join(" ", parts);
-    }
-
-    private static <T> PageResult<T> slicePage(List<T> rows, int page, int limit) {
-        int total = rows.size();
-        int fromIndex = Math.min((page - 1) * limit, total);
-        int toIndex = Math.min(fromIndex + limit, total);
-        long totalPage = total == 0 ? 0 : (total + limit - 1L) / limit;
-        return new PageResult<>(page, limit, totalPage, total, rows.subList(fromIndex, toIndex));
     }
 }

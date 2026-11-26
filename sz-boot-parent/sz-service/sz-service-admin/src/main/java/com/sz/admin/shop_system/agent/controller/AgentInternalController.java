@@ -35,6 +35,7 @@ public class AgentInternalController {
     private final AgentMallService agentMallService;
 
     @SaIgnore
+    @DebounceIgnore
     @Operation(summary = "内网推荐商品查询")
     @GetMapping("/products/recommend")
     public ApiResult<List<AgentMallVO.ProductSummary>> recommendProducts(
@@ -45,6 +46,7 @@ public class AgentInternalController {
     }
 
     @SaIgnore
+    @DebounceIgnore
     @Operation(summary = "内网商品搜索")
     @GetMapping("/products/search")
     public ApiResult<List<AgentMallVO.ProductSummary>> searchProducts(
@@ -57,6 +59,7 @@ public class AgentInternalController {
     }
 
     @SaIgnore
+    @DebounceIgnore
     @Operation(summary = "内网商品详情与全量SKU查询")
     @GetMapping("/products/{productId}")
     public ApiResult<AgentMallVO.ProductDetail> getProductDetail(@PathVariable Long productId) {
@@ -64,6 +67,7 @@ public class AgentInternalController {
     }
 
     @SaIgnore
+    @DebounceIgnore
     @Operation(summary = "内网用户收货地址查询")
     @GetMapping("/users/{userId}/addresses")
     public ApiResult<List<AgentMallVO.UserAddress>> listUserAddresses(@PathVariable Long userId) {
@@ -71,6 +75,7 @@ public class AgentInternalController {
     }
 
     @SaIgnore
+    @DebounceIgnore
     @Operation(summary = "内网用户订单列表查询")
     @GetMapping("/users/{userId}/orders")
     public ApiResult<PageResult<ShopFrontOrderVO>> listUserOrders(
@@ -83,6 +88,7 @@ public class AgentInternalController {
     }
 
     @SaIgnore
+    @DebounceIgnore
     @Operation(summary = "内网用户订单详情与发货记录查询")
     @GetMapping("/users/{userId}/orders/{orderNo}")
     public ApiResult<AgentMallVO.OrderDetail> getOrderDetail(@PathVariable Long userId,
@@ -91,6 +97,7 @@ public class AgentInternalController {
     }
 
     @SaIgnore
+    @DebounceIgnore
     @Operation(summary = "内网用户售后单列表查询")
     @GetMapping("/users/{userId}/after-sales")
     public ApiResult<List<AgentMallVO.AfterSaleSummary>> listUserAfterSales(
