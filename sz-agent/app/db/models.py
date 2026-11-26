@@ -110,11 +110,12 @@ class CsTicket(Base):
     """Asynchronous human customer service support ticket."""
 
     __tablename__ = "cs_tickets"
+    __table_args__ = (UniqueConstraint("ticket_no", name="uq_cs_tickets_ticket_no"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    ticket_no: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
+    ticket_no: Mapped[str] = mapped_column(String(32), nullable=False)
     user_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     session_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),

@@ -62,6 +62,15 @@ async def test_ticket_state_machine_and_session_system_message(async_db_session)
     with pytest.raises(ValueError, match="已关闭"):
         await t_repo.add_user_followup(ticket.id, user_id=101, content="再问一句")
 
+    msg_count_before = len(await s_repo.list_messages_for_user(s_a.id, 101) or [])
+    with pytest.raises(ValueError, match="已关闭"):
+        await t_repo.add_admin_reply(
+            ticket.id, admin_id=1, admin_name="客服A", content="关闭后再回复"
+        )
+    detail_after = await t_repo.get_ticket_detail_for_admin(ticket.id)
+    assert detail_after is not None and len(detail_after.replies) == 2
+    assert len(await s_repo.list_messages_for_user(s_a.id, 101) or []) == msg_count_before
+
 
 @pytest.mark.asyncio
 async def test_session_repository_isolation_interrupt_and_admin_view(async_db_session):
@@ -243,7 +252,7 @@ async def test_kb_repository_lifecycle_and_sha256_uniqueness(async_db_session):
 
 def test_orm_metadata_defines_all_5_tables_and_indexes():
     from app.db.base import Base
-    import app.db.models  # noqa: F401
+    from app.db.models import CsTicket, KbDocument
 
     assert set(Base.metadata.tables.keys()) == {
         "cs_sessions",
@@ -265,3 +274,7 @@ def test_orm_metadata_defines_all_5_tables_and_indexes():
         "idx_cs_ticket_replies_ticket",
         "idx_kb_doc_status",
     }.issubset(all_indexes)
+    ticket_constraints = {c.name for c in CsTicket.__table__.constraints if c.name}
+    kb_constraints = {c.name for c in KbDocument.__table__.constraints if c.name}
+    assert "uq_cs_tickets_ticket_no" in ticket_constraints
+    assert "uk_kb_doc_sha256" in kb_constraints

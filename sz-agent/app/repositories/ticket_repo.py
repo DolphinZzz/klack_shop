@@ -234,6 +234,8 @@ class TicketRepository:
         ticket = await self.get_ticket_detail_for_admin(ticket_id)
         if ticket is None:
             raise LookupError("工单不存在")
+        if ticket.status == "CLOSED":
+            raise ValueError("工单已关闭，无法回复")
 
         now = utcnow()
         reply = CsTicketReply(
