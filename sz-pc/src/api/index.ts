@@ -12,5 +12,7 @@ export * from '@/api/modules/coupon';
 export * from '@/api/modules/footprint';
 export * from '@/api/modules/favorite';
 export * from '@/api/modules/afterSale';
+export * from '@/api/types/cs';
+export * from '@/api/modules/cs';
 
 
