@@ -3,6 +3,8 @@ package com.sz.admin.shop_system.agent;
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaIgnore;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import com.sz.admin.shop_system.agent.config.AgentProperties;
@@ -13,6 +15,7 @@ import com.sz.admin.shop_system.agent.service.AgentProxyService.ProxyIdentity;
 import com.sz.core.common.annotation.DebounceIgnore;
 import com.sz.core.common.entity.BaseUserInfo;
 import com.sz.core.common.entity.LoginUser;
+import com.sz.core.common.exception.GlobalExceptionHandler;
 import com.sz.core.common.exception.common.BusinessException;
 import com.sz.security.core.util.LoginUtils;
 import com.sz.security.util.StpUserUtil;
@@ -23,6 +26,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
+import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -53,7 +59,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mockStatic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -388,6 +396,7 @@ class AgentProxyServiceTest {
             stpUserMock.when(StpUserUtil::getLoginIdAsLong).thenReturn(10086L);
 
             MvcResult asyncResult = mockMvc.perform(post("/client/cs/sessions/sess-1/chat/stream")
+                            .accept(MediaType.APPLICATION_JSON, MediaType.TEXT_EVENT_STREAM)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"message\":\"推荐键盘\"}"))
                     .andExpect(request().asyncStarted())
@@ -539,5 +548,84 @@ class AgentProxyServiceTest {
             assertThrows(BusinessException.class, () -> clientController.getTicketDetail("a?b=c", null));
             assertThrows(BusinessException.class, () -> adminController.deleteKbDocument("doc/../../x", null));
         }
+    }
+
+    @Test
+    void clientCsController_returnsJsonBusinessErrorOnInvalidSessionIdWithAcceptJson() throws Exception {
+        AgentProperties props = new AgentProperties();
+        props.setEnabled(true);
+        props.setBaseUrl("http://127.0.0.1:1");
+        props.setInternalSecret("kada-trusted-secret-2026");
+
+        AgentProxyService proxyService = new AgentProxyService(props);
+        ObjectMapper mapper = new ObjectMapper().configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new ClientCsController(proxyService))
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .setMessageConverters(
+                        new ByteArrayHttpMessageConverter(),
+                        new StringHttpMessageConverter(StandardCharsets.UTF_8),
+                        new MappingJackson2HttpMessageConverter(mapper))
+                .build();
+
+        try (MockedStatic<StpUserUtil> stpUserMock = mockStatic(StpUserUtil.class)) {
+            stpUserMock.when(StpUserUtil::getLoginIdAsLong).thenReturn(10086L);
+
+            mockMvc.perform(post("/client/cs/sessions/bad$id/chat/stream")
+                            .accept(MediaType.APPLICATION_JSON)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"message\":\"hi\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.code").value("C1008"));
+
+            mockMvc.perform(post("/client/cs/sessions/bad$id/resume/stream")
+                            .accept(MediaType.APPLICATION_JSON)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"action\":\"confirm\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.code").value("C1008"));
+        }
+    }
+
+    @Test
+    void forwardMultipart_sanitizesUntrustedFilenamesWithoutPathExceptions() throws Exception {
+        HttpServer server = startStubServer();
+        List<String> capturedBodies = new ArrayList<>();
+        server.createContext("/internal/cs/admin/kb/documents/upload", exchange -> {
+            capturedBodies.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            byte[] resp = "{\"id\":\"doc-2\"}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, resp.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(resp);
+            }
+        });
+
+        AgentProxyService proxyService = new AgentProxyService(createProperties(server));
+        Map<String, String> cases = Map.of(
+                "/", "upload.pdf",
+                "a\0b.pdf", "ab.pdf",
+                "C:\\fakepath\\law.pdf", "law.pdf");
+
+        for (Map.Entry<String, String> entry : cases.entrySet()) {
+            assertEquals(entry.getValue(), AgentProxyService.sanitizeFilename(entry.getKey()));
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", entry.getKey(), "application/pdf", "%PDF-1.4".getBytes(StandardCharsets.UTF_8));
+            ResponseEntity<byte[]> resp = proxyService.forwardMultipart(
+                    "/internal/cs/admin/kb/documents/upload",
+                    null,
+                    file,
+                    Map.of("category", "consumer_law"),
+                    new HttpHeaders(),
+                    ProxyIdentity.admin(1L, "admin"));
+            assertEquals(200, resp.getStatusCode().value());
+        }
+
+        assertEquals(3, capturedBodies.size());
+        assertTrue(capturedBodies.stream().anyMatch(b -> b.contains("filename=\"upload.pdf\"")));
+        assertTrue(capturedBodies.stream().anyMatch(b -> b.contains("filename=\"ab.pdf\"")));
+        assertTrue(capturedBodies.stream().anyMatch(b -> b.contains("filename=\"law.pdf\"")));
+        assertTrue(capturedBodies.stream().noneMatch(b -> b.contains("fakepath") || b.contains("\0")));
     }
 }

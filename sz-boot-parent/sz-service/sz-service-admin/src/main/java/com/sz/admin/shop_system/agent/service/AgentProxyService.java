@@ -27,7 +27,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Enumeration;
 import java.util.List;
@@ -593,15 +592,7 @@ public class AgentProxyService {
             }
         }
 
-        String originalFilename = file.getOriginalFilename();
-        String safeFilename = "document.pdf";
-        if (originalFilename != null && !originalFilename.isBlank()) {
-            String baseName = Path.of(originalFilename).getFileName().toString();
-            String cleaned = sanitizeHeaderToken(baseName);
-            if (!cleaned.isBlank()) {
-                safeFilename = cleaned;
-            }
-        }
+        String safeFilename = sanitizeFilename(file.getOriginalFilename());
         String fileContentType = file.getContentType();
         if (fileContentType == null || fileContentType.isBlank() || containsControlChars(fileContentType)) {
             fileContentType = MediaType.APPLICATION_PDF_VALUE;
@@ -614,6 +605,22 @@ public class AgentProxyService {
         out.write(file.getBytes());
         out.write(("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
         return out.toByteArray();
+    }
+
+    /**
+     * 安全提取上传文件 basename（兼容 / 与 \ 分隔符），剥离控制字符与引号，空串回退 upload.pdf
+     */
+    public static String sanitizeFilename(String originalFilename) {
+        if (originalFilename == null || originalFilename.isBlank()) {
+            return "upload.pdf";
+        }
+        int lastSep = Math.max(originalFilename.lastIndexOf('/'), originalFilename.lastIndexOf('\\'));
+        String baseName = lastSep >= 0 ? originalFilename.substring(lastSep + 1) : originalFilename;
+        String cleaned = sanitizeHeaderToken(baseName).trim();
+        if (cleaned.isEmpty() || ".".equals(cleaned) || "..".equals(cleaned)) {
+            return "upload.pdf";
+        }
+        return cleaned;
     }
 
     private static boolean hasHeaderIgnoreCase(HttpHeaders headers, String targetName) {
@@ -631,7 +638,7 @@ public class AgentProxyService {
     private static boolean containsControlChars(String value) {
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
-            if (c == '\r' || c == '\n' || c == '\0') {
+            if (c < 0x20 || c == 0x7F) {
                 return true;
             }
         }
@@ -639,7 +646,15 @@ public class AgentProxyService {
     }
 
     private static String sanitizeHeaderToken(String input) {
-        return input.replace("\r", "").replace("\n", "").replace("\"", "_");
+        StringBuilder sb = new StringBuilder(input.length());
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (c < 0x20 || c == 0x7F || c == '"') {
+                continue;
+            }
+            sb.append(c);
+        }
+        return sb.toString();
     }
 
     private static String escapeJson(String input) {

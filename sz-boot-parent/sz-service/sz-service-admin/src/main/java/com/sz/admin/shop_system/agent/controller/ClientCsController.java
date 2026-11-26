@@ -13,7 +13,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -79,7 +78,7 @@ public class ClientCsController {
     @Operation(summary = "发起客服对话流式响应（SSE）")
     @SaCheckLogin(type = "shop_user")
     @DebounceIgnore
-    @PostMapping(value = "/sessions/{sessionId}/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping("/sessions/{sessionId}/chat/stream")
     public SseEmitter chatStream(@PathVariable String sessionId,
                                  HttpServletRequest request,
                                  HttpServletResponse response,
@@ -97,7 +96,7 @@ public class ClientCsController {
     @Operation(summary = "恢复下单中断确认流式响应（SSE）")
     @SaCheckLogin(type = "shop_user")
     @DebounceIgnore
-    @PostMapping(value = "/sessions/{sessionId}/resume/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping("/sessions/{sessionId}/resume/stream")
     public SseEmitter resumeStream(@PathVariable String sessionId,
                                    HttpServletRequest request,
                                    HttpServletResponse response,
