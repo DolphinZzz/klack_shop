@@ -12,6 +12,7 @@ from app.routers import (
     SSE_RESPONSE_HEADERS,
     get_request_db_session,
     normalize_optional_filter,
+    parse_uuid_or_404,
     resolve_chat_service,
 )
 from app.schemas.cs import (
@@ -87,8 +88,9 @@ async def list_session_messages(
     db: AsyncSession = Depends(get_request_db_session),
 ) -> SessionMessagesResponse:
     """Fetch ordered messages and active interrupt state for a user-owned session."""
+    sid = parse_uuid_or_404(session_id, "会话不存在或无权访问")
     repo = SessionRepository(db)
-    cs_session = await repo.get_session_for_user(session_id, user_id)
+    cs_session = await repo.get_session_for_user(sid, user_id)
     if cs_session is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -121,11 +123,12 @@ async def chat_stream(
     chat_service: ChatService = Depends(resolve_chat_service),
 ) -> StreamingResponse:
     """Stream SSE events for a new customer service turn on a user-owned session."""
+    sid = parse_uuid_or_404(session_id, "会话不存在或无权访问")
     trace_id = (x_request_id or "").strip() or uuid.uuid4().hex
     try:
         prepared = await chat_service.prepare_chat_turn(
             user_id=user_id,
-            session_id=session_id,
+            session_id=str(sid),
             message=payload.message,
             force_ticket=payload.force_ticket,
             trace_id=trace_id,
@@ -150,11 +153,12 @@ async def resume_stream(
     chat_service: ChatService = Depends(resolve_chat_service),
 ) -> StreamingResponse:
     """Resume a pending order confirmation interrupt and stream resulting SSE events."""
+    sid = parse_uuid_or_404(session_id, "会话不存在或无权访问")
     trace_id = (x_request_id or "").strip() or uuid.uuid4().hex
     try:
         prepared = await chat_service.prepare_resume_turn(
             user_id=user_id,
-            session_id=session_id,
+            session_id=str(sid),
             action=payload.action,
             address_id=payload.address_id,
             reason=payload.reason,
@@ -211,7 +215,8 @@ async def get_my_ticket_detail(
     db: AsyncSession = Depends(get_request_db_session),
 ) -> TicketDetailResponse:
     """Return ticket details and reply timeline for a ticket owned by the authenticated user."""
-    ticket = await TicketRepository(db).get_ticket_detail_for_user(ticket_id, user_id)
+    tid = parse_uuid_or_404(ticket_id, "工单不存在或无权访问")
+    ticket = await TicketRepository(db).get_ticket_detail_for_user(tid, user_id)
     if ticket is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -228,9 +233,10 @@ async def reply_my_ticket(
     db: AsyncSession = Depends(get_request_db_session),
 ) -> TicketDetailResponse:
     """Append a user follow-up reply and reopen an OPEN/REPLIED ticket."""
+    tid = parse_uuid_or_404(ticket_id, "工单不存在或无权访问")
     try:
         updated = await TicketRepository(db).add_user_followup(
-            ticket_id,
+            tid,
             user_id=user_id,
             content=payload.content,
         )

@@ -31,6 +31,7 @@ from app.routers import (
     build_kb_ingestion_service,
     get_request_db_session,
     normalize_optional_filter,
+    parse_uuid_or_404,
     resolve_session_factory,
     resolve_settings,
 )
@@ -90,9 +91,23 @@ async def _run_kb_ingestion_task(
             service = build_kb_ingestion_service(app, bg_session, require_embeddings=True)
             await service.ingest_document(doc_id, use_cached_markdown=use_cached_markdown)
             await bg_session.commit()
-        except Exception:
+        except Exception as exc:
             await bg_session.rollback()
             logger.exception("Background KB ingestion task failed for doc %s", doc_id)
+            try:
+                error_msg = f"{type(exc).__name__}: {exc}".strip()[:4000]
+                await KbRepository(bg_session).update_status(
+                    doc_id,
+                    status="FAILED",
+                    chunk_count=0,
+                    error_msg=error_msg,
+                )
+                await bg_session.commit()
+            except Exception:
+                await bg_session.rollback()
+                logger.exception(
+                    "Failed to persist FAILED status for KB document %s", doc_id
+                )
 
 
 @router.get("/ping")
@@ -162,7 +177,8 @@ async def get_admin_ticket_detail(
     db: AsyncSession = Depends(get_request_db_session),
 ) -> AdminTicketDetailResponse:
     """Return full ticket detail, reply timeline, and linked session message replay."""
-    ticket = await TicketRepository(db).get_ticket_detail_for_admin(ticket_id)
+    tid = parse_uuid_or_404(ticket_id, "工单不存在")
+    ticket = await TicketRepository(db).get_ticket_detail_for_admin(tid)
     if ticket is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="工单不存在")
 
@@ -180,10 +196,11 @@ async def reply_admin_ticket(
     db: AsyncSession = Depends(get_request_db_session),
 ) -> TicketDetailResponse:
     """Add an admin reply, update ticket status, and sync a system note to the linked session."""
+    tid = parse_uuid_or_404(ticket_id, "工单不存在")
     admin_name = actor.admin_name or f"管理员{actor.admin_id}"
     try:
         updated = await TicketRepository(db).add_admin_reply(
-            ticket_id,
+            tid,
             admin_id=actor.admin_id,
             admin_name=admin_name,
             content=payload.content,
@@ -204,8 +221,9 @@ async def close_admin_ticket(
     db: AsyncSession = Depends(get_request_db_session),
 ) -> TicketDetailResponse:
     """Close a support ticket."""
+    tid = parse_uuid_or_404(ticket_id, "工单不存在")
     try:
-        closed = await TicketRepository(db).close_ticket(ticket_id)
+        closed = await TicketRepository(db).close_ticket(tid)
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return TicketDetailResponse.from_orm_model(closed)
@@ -277,7 +295,7 @@ async def upload_kb_document(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="上传文件不能为空")
     if len(raw_bytes) > MAX_KB_PDF_BYTES:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="PDF 文件大小不能超过 50MB",
         )
 
@@ -302,7 +320,8 @@ async def upload_kb_document(
         getattr(request.app.state, "kb_storage_dir", None) or settings.kb_storage_dir
     ).resolve()
     safe_filename = _sanitize_upload_filename(file.filename)
-    target_path = storage_root / "pdfs" / f"{file_sha256}_{safe_filename}"
+    # Use a per-upload UUID prefix so concurrent duplicate uploads never unlink the winner's file on rollback
+    target_path = storage_root / "pdfs" / f"{uuid.uuid4().hex}_{safe_filename}"
 
     def _write_pdf() -> None:
         target_path.parent.mkdir(parents=True, exist_ok=True)
@@ -356,8 +375,9 @@ async def reindex_kb_document(
     db: AsyncSession = Depends(get_request_db_session),
 ) -> KbDocumentResponse:
     """Re-queue an existing knowledge base document for asynchronous parsing and indexing."""
+    did = parse_uuid_or_404(doc_id, "知识库文档不存在")
     repo = KbRepository(db)
-    doc = await repo.get_document(doc_id)
+    doc = await repo.get_document(did)
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="知识库文档不存在")
 
@@ -386,8 +406,9 @@ async def delete_kb_document(
     db: AsyncSession = Depends(get_request_db_session),
 ) -> DeleteKbDocumentResponse:
     """Delete Milvus vectors, cached markdown, PG row, and stored PDF under kb_storage_dir."""
+    did = parse_uuid_or_404(doc_id, "知识库文档不存在")
     repo = KbRepository(db)
-    doc = await repo.get_document(doc_id)
+    doc = await repo.get_document(did)
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="知识库文档不存在")
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+import uuid
+
 from fastapi import HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +12,7 @@ from app.kb.embeddings import get_qwen_embeddings
 from app.kb.ingestion import KbIngestionService
 from app.kb.milvus_store import MilvusKbStore
 from app.kb.mineru_parser import MinerUParser
+from app.repositories._common import coerce_uuid
 from app.services.chat_service import ChatService
 
 SSE_RESPONSE_HEADERS = {
@@ -103,3 +106,14 @@ def normalize_optional_filter(
             detail=f"非法的 {field_name}: {cleaned}",
         )
     return cleaned
+
+
+def parse_uuid_or_404(raw_id: str, detail: str) -> uuid.UUID:
+    """Validate a string path parameter as a UUID or raise HTTP 404."""
+    parsed = coerce_uuid(raw_id)
+    if parsed is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=detail,
+        )
+    return parsed

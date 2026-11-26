@@ -32,6 +32,7 @@ from tests.test_graph_flows import (
 )
 
 INTERNAL_SECRET = "e2e-internal-secret-2026"
+_UNSET = object()
 
 
 class SlowStreamingChatModel(GenericFakeChatModel):
@@ -214,20 +215,22 @@ async def e2e_env(tmp_path: Path):
         kb_retriever: FakeKbRetriever | None = None,
         kb_store: FakeMilvusStore | None = None,
         kb_parser: FakeKbParser | None = None,
-        kb_embeddings: FakeEmbeddings | None = None,
+        kb_embeddings: Any = _UNSET,
+        settings_override: Settings | None = None,
         heartbeat_interval: float = 15.0,
         disconnect_check_interval: float = 0.05,
     ):
         from app.main import create_app
 
+        resolved_settings = settings_override or settings
         resolved_mall = mall_client or FakeMallClient()
         resolved_store = kb_store or FakeMilvusStore()
         resolved_parser = kb_parser or FakeKbParser()
-        resolved_embeddings = kb_embeddings or FakeEmbeddings()
+        resolved_embeddings = FakeEmbeddings() if kb_embeddings is _UNSET else kb_embeddings
         resolved_factory = _make_llm_factory(models or {})
 
         app = create_app(
-            settings=settings,
+            settings=resolved_settings,
             session_factory=session_factory,
             checkpointer=InMemorySaver(),
             mall_client=resolved_mall,
@@ -247,7 +250,7 @@ async def e2e_env(tmp_path: Path):
             "kb_parser": resolved_parser,
             "kb_embeddings": resolved_embeddings,
             "kb_dir": kb_dir,
-            "settings": settings,
+            "settings": resolved_settings,
         }
 
     try:
@@ -963,3 +966,304 @@ async def test_lifespan_initializes_dependencies_cleanly(monkeypatch, tmp_path):
     assert "checkpointer_close" in events
     assert "dispose_engine" in events
     await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_resume_stream_cancel_and_409_without_pending_interrupt(e2e_env):
+    mall = FakeMallClient()
+    env = e2e_env(
+        {
+            "router": StubChatModel(
+                messages=iter([]),
+                structured_outputs=[
+                    RouterDecision(intent="recommend_order", confidence=0.95, reason="buy")
+                ],
+            ),
+            "shopping": StubChatModel(
+                messages=iter(
+                    [
+                        AIMessage(
+                            content="",
+                            tool_calls=[
+                                {
+                                    "name": "prepare_order_draft",
+                                    "args": {"product_id": 10, "sku_id": 101, "quantity": 1},
+                                    "id": "cancel_draft_1",
+                                }
+                            ],
+                        ),
+                        AIMessage(content="请确认订单信息。"),
+                    ]
+                )
+            ),
+        },
+        mall_client=mall,
+    )
+
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=env["app"]),
+        base_url="http://testserver",
+    ) as client:
+        sid = (
+            await client.post("/internal/cs/client/sessions", headers=_client_headers(701))
+        ).json()["id"]
+
+        # Calling /resume/stream before any interrupt -> 409 Conflict
+        no_int_res = await client.post(
+            f"/internal/cs/client/sessions/{sid}/resume/stream",
+            headers=_client_headers(701),
+            json={"action": "confirm"},
+        )
+        assert no_int_res.status_code == 409
+
+        # Trigger pending order_confirm interrupt
+        chat_res = await client.post(
+            f"/internal/cs/client/sessions/{sid}/chat/stream",
+            headers=_client_headers(701),
+            json={"message": "帮我买 K80 红轴"},
+        )
+        assert chat_res.status_code == 200
+        assert _parse_sse_text(chat_res.text)[-1]["data"]["finish_reason"] == "interrupted"
+
+        # Explicit user cancel via /resume/stream
+        cancel_res = await client.post(
+            f"/internal/cs/client/sessions/{sid}/resume/stream",
+            headers=_client_headers(701),
+            json={"action": "cancel"},
+        )
+        assert cancel_res.status_code == 200
+        cancel_events = _parse_sse_text(cancel_res.text)
+        assert cancel_events[0]["event"] == "meta"
+        token_text = "".join(e["data"]["delta"] for e in cancel_events if e["event"] == "token")
+        assert "取消" in token_text
+        assert cancel_events[-1]["event"] == "done"
+        assert cancel_events[-1]["data"]["finish_reason"] == "stop"
+        assert mall.direct_create_calls == []
+
+        # Subsequent /resume/stream after cancel -> 409 Conflict again
+        second_res = await client.post(
+            f"/internal/cs/client/sessions/{sid}/resume/stream",
+            headers=_client_headers(701),
+            json={"action": "confirm"},
+        )
+        assert second_res.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_sse_emits_error_event_on_mid_stream_exception_without_partial_persist(e2e_env):
+    class RaisingStreamingChatModel(GenericFakeChatModel):
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        async def _astream(self, messages, stop=None, run_manager=None, **kwargs):
+            chunk = ChatGenerationChunk(message=AIMessageChunk(content="部分前置输出 "))
+            if run_manager:
+                await run_manager.on_llm_new_token("部分前置输出 ", chunk=chunk)
+            yield chunk
+            raise RuntimeError("Simulated upstream LLM outage")
+
+    env = e2e_env(
+        {
+            "router": StubChatModel(
+                messages=iter([]),
+                structured_outputs=[
+                    RouterDecision(intent="chitchat", confidence=0.95, reason="hi")
+                ],
+            ),
+            "chitchat": RaisingStreamingChatModel(messages=iter([])),
+        }
+    )
+
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=env["app"]),
+        base_url="http://testserver",
+    ) as client:
+        sid = (
+            await client.post("/internal/cs/client/sessions", headers=_client_headers(702))
+        ).json()["id"]
+        resp = await client.post(
+            f"/internal/cs/client/sessions/{sid}/chat/stream",
+            headers=_client_headers(702),
+            json={"message": "你好"},
+        )
+        assert resp.status_code == 200
+        events = _parse_sse_text(resp.text)
+        assert any(
+            e["event"] == "error"
+            and e["data"]["code"] == "AGENT_STREAM_ERROR"
+            and "服务暂时繁忙" in e["data"]["message"]
+            for e in events
+        )
+        assert not any(e["event"] in ("done", "interrupt") for e in events)
+
+    async with env["session_factory"]() as verify_session:
+        msgs = list(
+            (
+                await verify_session.execute(
+                    select(CsMessage).where(CsMessage.user_id == 702)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert [m.role for m in msgs] == ["user"]
+
+
+@pytest.mark.asyncio
+async def test_kb_upload_validation_errors_and_unique_storage_paths(e2e_env, monkeypatch):
+    from app.routers import admin_cs
+
+    env = e2e_env()
+    monkeypatch.setattr(admin_cs, "MAX_KB_PDF_BYTES", 1024)
+
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=env["app"]),
+        base_url="http://testserver",
+    ) as client:
+        # Empty file -> 400
+        empty_res = await client.post(
+            "/internal/cs/admin/kb/documents/upload",
+            headers=_admin_headers(),
+            files={"file": ("empty.pdf", b"", "application/pdf")},
+            data={"category": "mall_policy", "title": "空文件"},
+        )
+        assert empty_res.status_code == 400
+
+        # Invalid category -> 400
+        bad_cat_res = await client.post(
+            "/internal/cs/admin/kb/documents/upload",
+            headers=_admin_headers(),
+            files={"file": ("policy.pdf", b"%PDF-1.4 ok", "application/pdf")},
+            data={"category": "invalid_category", "title": "错误分类"},
+        )
+        assert bad_cat_res.status_code == 400
+
+        # Non-PDF file -> 400
+        non_pdf_res = await client.post(
+            "/internal/cs/admin/kb/documents/upload",
+            headers=_admin_headers(),
+            files={"file": ("script.exe", b"MZ\x90\x00not-a-pdf", "application/octet-stream")},
+            data={"category": "mall_policy", "title": "非PDF"},
+        )
+        assert non_pdf_res.status_code == 400
+
+        # Oversized PDF (> MAX_KB_PDF_BYTES) -> 413
+        oversized_res = await client.post(
+            "/internal/cs/admin/kb/documents/upload",
+            headers=_admin_headers(),
+            files={"file": ("big.pdf", b"%PDF-1.4 " + b"A" * 1030, "application/pdf")},
+            data={"category": "mall_policy", "title": "超大文件"},
+        )
+        assert oversized_res.status_code == 413
+
+        # Concurrent duplicate race protection: IntegrityError on second insert must NOT delete winner's file
+        pdf_bytes = b"%PDF-1.4 winner-content"
+        first_res = await client.post(
+            "/internal/cs/admin/kb/documents/upload",
+            headers=_admin_headers(),
+            files={"file": ("same.pdf", pdf_bytes, "application/pdf")},
+            data={"category": "mall_policy", "title": "先提交文档"},
+        )
+        assert first_res.status_code == 200
+        winner_path = Path(first_res.json()["file_path"])
+        assert winner_path.exists()
+
+        # Force get_by_sha256 to return None so the second upload reaches create_document -> IntegrityError
+        from app.repositories.kb_repo import KbRepository
+
+        async def fake_none_sha256(self, _sha256: str):
+            return None
+
+        monkeypatch.setattr(KbRepository, "get_by_sha256", fake_none_sha256)
+        race_res = await client.post(
+            "/internal/cs/admin/kb/documents/upload",
+            headers=_admin_headers(),
+            files={"file": ("same.pdf", pdf_bytes, "application/pdf")},
+            data={"category": "mall_policy", "title": "并发竞争文档"},
+        )
+        assert race_res.status_code == 409
+        assert winner_path.exists()
+        pdfs_on_disk = list((env["kb_dir"] / "pdfs").iterdir())
+        assert pdfs_on_disk == [winner_path]
+
+
+@pytest.mark.asyncio
+async def test_non_uuid_path_params_return_404_and_kb_ingestion_failure_marks_failed(e2e_env):
+    no_dashscope_settings = Settings(
+        agent_internal_secret=INTERNAL_SECRET,
+        kb_storage_dir=str(e2e_env()["kb_dir"]),
+        mineru_mode="cloud_api",
+        dashscope_api_key="",
+    )
+    env = e2e_env(kb_embeddings=None, settings_override=no_dashscope_settings)
+
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=env["app"]),
+        base_url="http://testserver",
+    ) as client:
+        # Non-UUID path segments (valid for Java SAFE_PATH_SEGMENT_PATTERN) cleanly return 404
+        assert (
+            await client.get("/internal/cs/client/sessions/abc123/messages", headers=_client_headers(801))
+        ).status_code == 404
+        assert (
+            await client.post(
+                "/internal/cs/client/sessions/abc123/chat/stream",
+                headers=_client_headers(801),
+                json={"message": "hi"},
+            )
+        ).status_code == 404
+        assert (
+            await client.post(
+                "/internal/cs/client/sessions/abc123/resume/stream",
+                headers=_client_headers(801),
+                json={"action": "confirm"},
+            )
+        ).status_code == 404
+        assert (
+            await client.get("/internal/cs/client/tickets/abc123", headers=_client_headers(801))
+        ).status_code == 404
+        assert (
+            await client.post(
+                "/internal/cs/client/tickets/abc123/replies",
+                headers=_client_headers(801),
+                json={"content": "追问"},
+            )
+        ).status_code == 404
+
+        assert (
+            await client.get("/internal/cs/admin/tickets/abc123", headers=_admin_headers())
+        ).status_code == 404
+        assert (
+            await client.post(
+                "/internal/cs/admin/tickets/abc123/reply",
+                headers=_admin_headers(),
+                json={"content": "回复"},
+            )
+        ).status_code == 404
+        assert (
+            await client.post("/internal/cs/admin/tickets/abc123/close", headers=_admin_headers())
+        ).status_code == 404
+        assert (
+            await client.post("/internal/cs/admin/kb/documents/abc123/reindex", headers=_admin_headers())
+        ).status_code == 404
+        assert (
+            await client.delete("/internal/cs/admin/kb/documents/abc123", headers=_admin_headers())
+        ).status_code == 404
+
+        # Background KB ingestion failure when DASHSCOPE_API_KEY is missing marks FAILED instead of PENDING
+        upload_res = await client.post(
+            "/internal/cs/admin/kb/documents/upload",
+            headers=_admin_headers(),
+            files={"file": ("fail_embed.pdf", b"%PDF-1.4 test-missing-key", "application/pdf")},
+            data={"category": "consumer_law", "title": "无向量密钥失败测试"},
+        )
+        assert upload_res.status_code == 200
+        doc_id = upload_res.json()["id"]
+
+        listed = (
+            await client.get("/internal/cs/admin/kb/documents", headers=_admin_headers())
+        ).json()
+        target = next(item for item in listed["items"] if item["id"] == doc_id)
+        assert target["status"] == "FAILED"
+        assert target["chunk_count"] == 0
+        assert "DASHSCOPE_API_KEY" in (target["error_msg"] or "")
