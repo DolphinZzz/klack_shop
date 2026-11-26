@@ -27,6 +27,9 @@ const tickets = ref<CsTicketSummary[]>([]);
 const selectedDetail = ref<CsTicketDetail | null>(null);
 const replyContent = ref('');
 
+let listReqSeq = 0;
+let detailReqSeq = 0;
+
 const statusTabs = [
   { label: '全部', value: '' },
   { label: '待处理', value: 'OPEN' },
@@ -76,6 +79,7 @@ const canReply = computed(() => {
 });
 
 const fetchTickets = async () => {
+  const reqSeq = ++listReqSeq;
   loadingList.value = true;
   try {
     const res = await listCsTicketsApi({
@@ -83,26 +87,54 @@ const fetchTickets = async () => {
       page: 1,
       limit: 30
     });
+    if (reqSeq !== listReqSeq) return;
     tickets.value = res.data?.items || [];
   } catch {
     // http.ts already handles error toast
   } finally {
-    loadingList.value = false;
+    if (reqSeq === listReqSeq) {
+      loadingList.value = false;
+    }
   }
 };
 
 const openTicketDetail = async (ticketId: string) => {
   if (!ticketId) return;
+  const reqSeq = ++detailReqSeq;
   loadingDetail.value = true;
   try {
     const res = await getCsTicketDetailApi(ticketId);
+    if (reqSeq !== detailReqSeq) return;
     selectedDetail.value = res.data;
   } catch {
     // http.ts handles error toast
   } finally {
-    loadingDetail.value = false;
+    if (reqSeq === detailReqSeq) {
+      loadingDetail.value = false;
+    }
   }
 };
+
+const clearDetail = () => {
+  detailReqSeq += 1;
+  loadingDetail.value = false;
+  selectedDetail.value = null;
+  replyContent.value = '';
+};
+
+const reset = () => {
+  listReqSeq += 1;
+  detailReqSeq += 1;
+  loadingList.value = false;
+  loadingDetail.value = false;
+  submittingReply.value = false;
+  statusFilter.value = '';
+  tickets.value = [];
+  selectedDetail.value = null;
+  replyContent.value = '';
+};
+
+defineExpose({ reset, clearDetail });
 
 const handleSelectStatus = (val: string) => {
   statusFilter.value = val;
@@ -114,11 +146,15 @@ const submitFollowup = async () => {
   const trimmed = replyContent.value.trim();
   if (!detail || !trimmed || submittingReply.value) return;
 
+  const targetTicketId = detail.id;
   submittingReply.value = true;
   try {
-    const res = await replyCsTicketApi(detail.id, { content: trimmed });
-    selectedDetail.value = res.data;
-    replyContent.value = '';
+    const res = await replyCsTicketApi(targetTicketId, { content: trimmed });
+    if (selectedDetail.value?.id === targetTicketId) {
+      detailReqSeq += 1;
+      selectedDetail.value = res.data;
+      replyContent.value = '';
+    }
     ElMessage.success('追问已提交');
     void fetchTickets();
   } catch {
@@ -158,7 +194,7 @@ watch(
     <!-- 工单详情视图 -->
     <template v-if="selectedDetail">
       <div class="cs-detail-topbar">
-        <button type="button" class="cs-back-btn" @click="selectedDetail = null">
+        <button type="button" class="cs-back-btn" @click="clearDetail">
           <el-icon><ArrowLeft /></el-icon>
           <span>返回列表</span>
         </button>

@@ -49,8 +49,10 @@ const isStreaming = ref(false);
 const resumingInterrupt = ref(false);
 const draftInput = ref('');
 const messagesContainerRef = ref<HTMLElement | null>(null);
+const ticketPanelRef = ref<InstanceType<typeof MyTicketPanel> | null>(null);
 
 let activeAbortController: AbortController | null = null;
+let sessionMessagesReqSeq = 0;
 
 const isHidden = computed(() => route.path === '/login');
 
@@ -80,12 +82,16 @@ const abortActiveStream = () => {
 
 const resetWidgetState = () => {
   abortActiveStream();
+  sessionMessagesReqSeq += 1;
+  loadingSessions.value = false;
+  loadingMessages.value = false;
   sessions.value = [];
   currentSessionId.value = '';
   messages.value = [];
   draftInput.value = '';
   focusTicketId.value = null;
   activeTab.value = 'chat';
+  ticketPanelRef.value?.reset();
 };
 
 const hydrateMessages = (rawMessages: CsMessage[], hasPendingInterrupt: boolean) => {
@@ -112,9 +118,11 @@ const hydrateMessages = (rawMessages: CsMessage[], hasPendingInterrupt: boolean)
 
 const loadSessionMessages = async (sessionId: string) => {
   if (!sessionId) return;
+  const reqSeq = ++sessionMessagesReqSeq;
   loadingMessages.value = true;
   try {
     const res = await getCsSessionMessagesApi(sessionId);
+    if (reqSeq !== sessionMessagesReqSeq || currentSessionId.value !== sessionId) return;
     const data = res.data;
     if (data) {
       const idx = sessions.value.findIndex(s => s.id === data.session.id);
@@ -127,7 +135,9 @@ const loadSessionMessages = async (sessionId: string) => {
   } catch {
     // http.ts handles toast
   } finally {
-    loadingMessages.value = false;
+    if (reqSeq === sessionMessagesReqSeq) {
+      loadingMessages.value = false;
+    }
   }
 };
 
@@ -143,6 +153,8 @@ const refreshSessionsSilent = async () => {
 const createNewSession = async (): Promise<CsSession | null> => {
   if (creatingSession.value) return null;
   abortActiveStream();
+  sessionMessagesReqSeq += 1;
+  loadingMessages.value = false;
   creatingSession.value = true;
   try {
     const res = await createCsSessionApi({});
@@ -450,7 +462,12 @@ const handleManageAddress = () => {
 };
 
 const handleOpenTickets = (ticketId?: string | null) => {
-  focusTicketId.value = ticketId || null;
+  if (ticketId) {
+    focusTicketId.value = ticketId;
+  } else {
+    focusTicketId.value = null;
+    ticketPanelRef.value?.clearDetail();
+  }
   activeTab.value = 'tickets';
 };
 
@@ -463,9 +480,9 @@ const handleInputKeydown = (event: Event | KeyboardEvent) => {
 };
 
 watch(
-  () => authStore.isLogin,
-  loggedIn => {
-    if (!loggedIn) {
+  () => authStore.token,
+  (newToken, oldToken) => {
+    if (!newToken || (oldToken && newToken !== oldToken)) {
       drawerOpen.value = false;
       resetWidgetState();
     }
@@ -680,6 +697,7 @@ onBeforeUnmount(() => {
         <!-- Tab 2: 我的工单 -->
         <div v-show="activeTab === 'tickets'" class="kc-cs-tickets-pane">
           <MyTicketPanel
+            ref="ticketPanelRef"
             :active="drawerOpen && activeTab === 'tickets'"
             :focus-ticket-id="focusTicketId"
             @consumed-focus="focusTicketId = null"
