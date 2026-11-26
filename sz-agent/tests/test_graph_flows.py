@@ -61,6 +61,8 @@ class StubChatModel(GenericFakeChatModel):
                 item = model_self.structured_outputs.pop(0)
                 if callable(item):
                     item = item(messages)
+                if item is None:
+                    return None
                 if isinstance(item, schema):
                     return item
                 return schema.model_validate(item)
@@ -1042,3 +1044,120 @@ async def test_graph_astream_messages_and_updates_supports_interrupt_and_resume(
         and upd["recommend_order_subgraph"]["ui_events"][0]["card_type"] == "order_created"
         for upd in resume_updates
     )
+
+
+def test_structured_schemas_sanitize_out_of_range_and_invalid_values():
+    from app.agent.state import HandoffSummary, RouterDecision
+
+    r_high = RouterDecision.model_validate(
+        {"intent": "unexpected_intent", "confidence": 1.75, "reason": None}
+    )
+    assert r_high.intent == "fallback"
+    assert r_high.confidence == 1.0
+    assert r_high.reason == ""
+
+    r_low = RouterDecision.model_validate(
+        {"intent": "chitchat", "confidence": -0.4}
+    )
+    assert r_low.intent == "chitchat"
+    assert r_low.confidence == 0.0
+
+    r_nan = RouterDecision.model_validate(
+        {"intent": "handoff", "confidence": float("nan")}
+    )
+    assert r_nan.confidence == 0.0
+
+    long_title = "标题很长" * 60
+    h_sanitized = HandoffSummary.model_validate(
+        {
+            "category": "vip_escalation",
+            "title": f"  {long_title}  ",
+            "summary": None,
+            "related_order_no": "   ",
+        }
+    )
+    assert h_sanitized.category == "other"
+    assert len(h_sanitized.title) == 128
+    assert h_sanitized.summary == ""
+    assert h_sanitized.related_order_no is None
+
+    h_blank_title = HandoffSummary.model_validate(
+        {"category": "order_issue", "title": "   ", "related_order_no": "  ORD" + "9" * 80 + "  "}
+    )
+    assert h_blank_title.category == "order_issue"
+    assert h_blank_title.title == "人工客服工单"
+    assert len(h_blank_title.related_order_no) == 64
+
+
+@pytest.mark.asyncio
+async def test_structured_output_none_and_type_error_fall_back_gracefully():
+    from app.agent.graph import build_customer_service_graph, build_thread_id
+    from app.agent.llm import invoke_structured_output
+    from app.agent.state import RouterDecision
+
+    class NoneStructuredModel(GenericFakeChatModel):
+        def with_structured_output(self, schema):  # intentionally no method= kwarg
+            async def _ainvoke(messages, config=None):
+                return None
+
+            return RunnableLambda(lambda m: None, afunc=_ainvoke)
+
+    none_model = NoneStructuredModel(messages=iter([]))
+    direct_res = await invoke_structured_output(
+        none_model,
+        RouterDecision,
+        [HumanMessage(content="测试")],
+    )
+    assert direct_res is None
+
+    fallback_stub = StubChatModel(
+        messages=iter(
+            [
+                AIMessage(
+                    content=(
+                        "我可以为您提供以下 4 项服务：\n"
+                        "1. 热销与个性商品推荐下单\n"
+                        "2. 订单与发货/物流进度查询\n"
+                        "3. 售后政策与消费者权益法规解答\n"
+                        "4. 人工工单服务"
+                    )
+                )
+            ]
+        )
+    )
+    ticket_repo = FakeTicketRepo()
+    handoff_none_model = NoneStructuredModel(messages=iter([]))
+    models = {
+        "router": none_model,
+        "fallback": fallback_stub,
+        "handoff_extractor": handoff_none_model,
+    }
+    graph = build_customer_service_graph(
+        checkpointer=InMemorySaver(),
+        mall_client=FakeMallClient(),
+        kb_retriever=None,
+        ticket_repo_factory=lambda: ticket_repo,
+        llm_factory=_make_llm_factory(models),
+    )
+    ctx = _ctx()
+
+    # intent_router receiving None structured output falls back safely to fallback_node
+    res_fallback = await graph.ainvoke(
+        {"messages": [HumanMessage(content="嗯？")]},
+        context=ctx,
+        config={"configurable": {"thread_id": build_thread_id(777, "s-none-router")}},
+    )
+    assert res_fallback["intent"] == "fallback"
+    assert res_fallback["intent_confidence"] == 0.0
+    assert "4 项" in res_fallback["messages"][-1].content
+
+    # handoff_node receiving None structured output still creates OPEN ticket with fallback summary
+    res_handoff = await graph.ainvoke(
+        {"messages": [HumanMessage(content="我的订单一直没收到货")], "force_ticket": True},
+        context=ctx,
+        config={"configurable": {"thread_id": build_thread_id(777, "s-none-handoff")}},
+    )
+    assert res_handoff["created_ticket"] is not None
+    assert res_handoff["created_ticket"]["status"] == "OPEN"
+    assert len(ticket_repo.created) == 1
+    assert ticket_repo.created[0]["title"] == "我的订单一直没收到货"

@@ -111,6 +111,13 @@ def build_customer_service_graph(
             RouterDecision,
             [SystemMessage(content=INTENT_ROUTER_SYSTEM_PROMPT), *recent_messages],
         )
+        if decision is None:
+            return {
+                **clean_outputs,
+                "intent": "fallback",
+                "intent_confidence": 0.0,
+                "force_ticket": False,
+            }
 
         confidence = max(0.0, min(1.0, float(decision.confidence)))
         effective_intent = decision.intent

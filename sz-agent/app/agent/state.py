@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import math
 from typing import Annotated, Any, Literal, NotRequired, TypedDict
 
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 IntentType = Literal[
     "chitchat",
@@ -54,18 +55,79 @@ class OrderDraft(TypedDict):
 class RouterDecision(BaseModel):
     """Structured intent classification output produced by intent_router."""
 
-    intent: IntentType
-    confidence: float = Field(ge=0.0, le=1.0)
+    intent: IntentType = "fallback"
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     reason: str = ""
+
+    @field_validator("intent", mode="before")
+    @classmethod
+    def _normalize_intent(cls, value: Any) -> str:
+        if isinstance(value, str):
+            cleaned = value.strip()
+            if cleaned in VALID_INTENTS:
+                return cleaned
+        return "fallback"
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def _clamp_confidence(cls, value: Any) -> float:
+        if isinstance(value, bool) or value is None:
+            return 0.0
+        try:
+            num = float(value)
+        except (TypeError, ValueError):
+            return 0.0
+        if not math.isfinite(num):
+            return 0.0
+        return max(0.0, min(1.0, num))
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def _normalize_reason(cls, value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value)
 
 
 class HandoffSummary(BaseModel):
     """Structured support ticket summary extracted by handoff_node."""
 
     category: TicketCategoryType = "other"
-    title: str = Field(min_length=1, max_length=128)
+    title: str = Field(default="人工客服工单", min_length=1, max_length=128)
     summary: str = ""
     related_order_no: str | None = None
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def _normalize_category(cls, value: Any) -> str:
+        if isinstance(value, str):
+            cleaned = value.strip()
+            if cleaned in VALID_TICKET_CATEGORIES:
+                return cleaned
+        return "other"
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def _normalize_title(cls, value: Any) -> str:
+        if value is None or isinstance(value, bool):
+            return "人工客服工单"
+        cleaned = str(value).strip()[:128].strip()
+        return cleaned or "人工客服工单"
+
+    @field_validator("summary", mode="before")
+    @classmethod
+    def _normalize_summary(cls, value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
+    @field_validator("related_order_no", mode="before")
+    @classmethod
+    def _normalize_related_order_no(cls, value: Any) -> str | None:
+        if value is None or isinstance(value, bool):
+            return None
+        cleaned = str(value).strip()[:64].strip()
+        return cleaned or None
 
 
 class CustomerServiceState(TypedDict):

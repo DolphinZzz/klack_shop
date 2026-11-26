@@ -126,13 +126,20 @@ def build_handoff_node(*, llm_factory: LlmFactory, ticket_repo_factory: Any):
             HandoffSummary,
             [SystemMessage(content=HANDOFF_EXTRACTOR_SYSTEM_PROMPT), *history],
         )
-
-        category = extracted.category if extracted.category in VALID_TICKET_CATEGORIES else "other"
-        title = (extracted.title or "人工客服工单").strip()[:128] or "人工客服工单"
         last_user_text = next(
             (coerce_message_text(m.content).strip() for m in reversed(history) if isinstance(m, HumanMessage)),
             "",
         )
+        if extracted is None:
+            extracted = HandoffSummary(
+                category="other",
+                title=last_user_text or "人工客服工单",
+                summary=last_user_text or "用户请求转人工客服",
+                related_order_no=None,
+            )
+
+        category = extracted.category if extracted.category in VALID_TICKET_CATEGORIES else "other"
+        title = (extracted.title or "人工客服工单").strip()[:128] or "人工客服工单"
         summary = (extracted.summary or last_user_text or title).strip()
         related_order_no = (
             extracted.related_order_no.strip()[:64]
