@@ -79,6 +79,7 @@ class MinerUParser:
         api_token: str = "",
         base_url: str = "",
         *,
+        flash_base_url: str = "",
         flash_max_pages: int = DEFAULT_FLASH_MAX_PAGES,
         storage_dir: str | Path | None = None,
         language: str = "ch",
@@ -97,6 +98,7 @@ class MinerUParser:
         self.mode = mode
         self.api_token = api_token.strip()
         self.base_url = base_url.strip()
+        self.flash_base_url = flash_base_url.strip()
         self.flash_max_pages = flash_max_pages
         self.storage_dir = Path(storage_dir) if storage_dir is not None else None
         self.language = language
@@ -188,7 +190,7 @@ class MinerUParser:
 
     def _extract_flash_sync(self, pdf_path: Path) -> str:
         client = MinerU(
-            flash_base_url=self.base_url or DEFAULT_FLASH_BASE_URL,
+            flash_base_url=self.flash_base_url or DEFAULT_FLASH_BASE_URL,
         )
         try:
             result = client.flash_extract(
@@ -257,9 +259,18 @@ class MinerUParser:
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
-                _, stderr_b = await asyncio.wait_for(
-                    proc.communicate(), timeout=self.timeout
-                )
+                try:
+                    _, stderr_b = await asyncio.wait_for(
+                        proc.communicate(), timeout=self.timeout
+                    )
+                except BaseException:
+                    if proc.returncode is None:
+                        try:
+                            proc.kill()
+                        except ProcessLookupError:
+                            pass
+                        await proc.wait()
+                    raise
                 returncode = proc.returncode or 0
                 stderr = stderr_b.decode("utf-8", errors="replace")
 

@@ -196,7 +196,83 @@ async def test_mineru_parser_modes_and_markdown_cache(tmp_path, monkeypatch):
         MinerUParser(mode="unknown_mode")
 
 
-def test_get_qwen_embeddings_configures_dashscope_and_dimensions():
+@pytest.mark.asyncio
+async def test_mineru_flash_fallback_ignores_precision_base_url_and_kills_cli_on_timeout(
+    tmp_path, monkeypatch
+):
+    from mineru import DEFAULT_FLASH_BASE_URL
+
+    from app.kb.mineru_parser import MinerUParser
+
+    pdf_path = tmp_path / "small.pdf"
+    _write_blank_pdf(pdf_path, pages=2)
+
+    flash_init_calls = []
+
+    class FakeFlashClient:
+        def __init__(self, token=None, base_url=None, flash_base_url=None):
+            flash_init_calls.append({"token": token, "base_url": base_url, "flash_base_url": flash_base_url})
+
+        def flash_extract(self, source, **kwargs):
+            return SimpleNamespace(state="done", markdown="# Flash OK", error=None, err_code="")
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr("app.kb.mineru_parser.MinerU", FakeFlashClient)
+    # base_url configured for Precision or local_http must not override flash_base_url
+    parser = MinerUParser(
+        mode="cloud_api",
+        api_token="",
+        base_url="http://127.0.0.1:18000",
+    )
+    assert await parser.parse_pdf(pdf_path) == "# Flash OK"
+    assert flash_init_calls[-1]["flash_base_url"] == DEFAULT_FLASH_BASE_URL
+
+    custom_parser = MinerUParser(
+        mode="cloud_api",
+        api_token="",
+        base_url="http://127.0.0.1:18000",
+        flash_base_url="https://flash.internal/api",
+    )
+    assert await custom_parser.parse_pdf(pdf_path) == "# Flash OK"
+    assert flash_init_calls[-1]["flash_base_url"] == "https://flash.internal/api"
+
+    # local_cli kills and reaps subprocess on timeout
+    import asyncio
+
+    proc_events = []
+
+    class HangingProc:
+        def __init__(self):
+            self.returncode = None
+
+        async def communicate(self):
+            await asyncio.sleep(10)
+            return b"", b""
+
+        def kill(self):
+            proc_events.append("kill")
+            self.returncode = -9
+
+        async def wait(self):
+            proc_events.append("wait")
+            return -9
+
+    async def fake_create_subprocess_exec(*args, **kwargs):
+        return HangingProc()
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_create_subprocess_exec)
+    cli_parser = MinerUParser(mode="local_cli", cli_command="mineru", timeout=0.02)
+    with pytest.raises(TimeoutError):
+        await cli_parser.parse_pdf(pdf_path)
+    assert proc_events == ["kill", "wait"]
+
+
+@pytest.mark.asyncio
+async def test_get_qwen_embeddings_configures_dashscope_and_dimensions():
+    import openai
+
     from app.config import Settings
     from app.kb.embeddings import get_qwen_embeddings
 
@@ -209,9 +285,44 @@ def test_get_qwen_embeddings_configures_dashscope_and_dimensions():
     emb = get_qwen_embeddings(settings)
     assert emb.model == "text-embedding-v4"
     assert emb.dimensions == 1024
+    assert emb.chunk_size == 10
     assert emb.check_embedding_ctx_length is False
     assert emb.openai_api_base == "https://dashscope.aliyuncs.com/compatible-mode/v1"
     assert emb.model_kwargs.get("encoding_format") == "float"
+
+    # Verify >10 inputs are split into batches of at most 10 inputs per request
+    batch_sizes = []
+
+    def _mock_embed_transport(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content.decode("utf-8"))
+        inputs = body["input"]
+        batch_sizes.append(len(inputs))
+        assert body["model"] == "text-embedding-v4"
+        assert body["dimensions"] == 1024
+        assert body["encoding_format"] == "float"
+        return httpx.Response(
+            200,
+            json={
+                "object": "list",
+                "data": [
+                    {"object": "embedding", "index": idx, "embedding": [0.1] * 1024}
+                    for idx in range(len(inputs))
+                ],
+                "model": "text-embedding-v4",
+                "usage": {"prompt_tokens": len(inputs), "total_tokens": len(inputs)},
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(_mock_embed_transport)) as client:
+        emb.async_client = openai.AsyncOpenAI(
+            api_key="sk-dashscope-test",
+            base_url=settings.dashscope_base_url,
+            http_client=client,
+        ).embeddings
+        vectors = await emb.aembed_documents([f"条文内容 {i}" for i in range(25)])
+
+    assert batch_sizes == [10, 10, 5]
+    assert len(vectors) == 25 and len(vectors[0]) == 1024
 
 
 @pytest.mark.asyncio
@@ -541,3 +652,82 @@ async def test_seed_knowledge_docs_is_idempotent_by_sha256(async_db_session, tmp
     third = await seed_knowledge_docs(async_db_session, svc, docs_dir=docs_dir, mineru_mode="cloud_api")
     assert third.reindexed == 1 and third.skipped == 1
     assert parsed_files == ["01_consumer_rights_protection_law.pdf"]
+
+
+@pytest.mark.asyncio
+async def test_seed_commits_per_document_and_isolates_file_io_errors(tmp_path, monkeypatch):
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+    from app.db.base import Base
+    import app.db.models  # noqa: F401
+    from app.kb.ingestion import KbIngestionService
+    from app.kb.seed import seed_knowledge_docs
+    from app.repositories.kb_repo import KbRepository
+
+    db_file = tmp_path / "seed_tx.db"
+    engine = create_async_engine(f"sqlite+aiosqlite:///{db_file}", echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False, autoflush=False)
+
+    docs_dir = tmp_path / "knowledge_docs"
+    docs_dir.mkdir()
+    doc1 = docs_dir / "01_consumer_rights_protection_law.pdf"
+    doc2 = docs_dir / "02_consumer_rights_implementation_regulations.pdf"
+    doc1.write_bytes(b"%PDF-1.4 doc1")
+    doc2.write_bytes(b"%PDF-1.4 doc2")
+
+    original_read_bytes = Path.read_bytes
+
+    def flaky_read_bytes(self: Path) -> bytes:
+        if self.name == doc2.name:
+            raise OSError("simulated I/O read failure")
+        return original_read_bytes(self)
+
+    monkeypatch.setattr(Path, "read_bytes", flaky_read_bytes)
+
+    class FakeParser:
+        async def parse_pdf(self, path):
+            return "# 第一条\n保障消费者权益。"
+
+    class FakeEmbed:
+        async def aembed_documents(self, texts):
+            return [[0.3] * 1024 for _ in texts]
+
+    milvus_docs = []
+
+    class FakeStore:
+        async def delete_by_doc_id(self, doc_id):
+            pass
+
+        async def upsert_chunks(self, chunks, vectors):
+            milvus_docs.append(chunks[0].doc_id)
+
+    try:
+        async with session_factory() as session:
+            svc = KbIngestionService(
+                session=session,
+                parser=FakeParser(),
+                embeddings=FakeEmbed(),
+                store=FakeStore(),
+                storage_dir=tmp_path,
+            )
+            report = await seed_knowledge_docs(
+                session,
+                svc,
+                docs_dir=docs_dir,
+                mineru_mode="cloud_api",
+                commit_per_doc=True,
+            )
+            assert report.created == 1 and report.failed == 1
+
+        # Verify in a brand-new session that doc1 stayed committed even though doc2 failed
+        async with session_factory() as verify_session:
+            verify_repo = KbRepository(verify_session)
+            rows = await verify_repo.list_documents()
+            assert len(rows) == 1
+            assert rows[0].file_name == doc1.name and rows[0].status == "INDEXED"
+            assert milvus_docs == [str(rows[0].id)]
+    finally:
+        await engine.dispose()

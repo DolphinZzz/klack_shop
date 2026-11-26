@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,6 +16,8 @@ from app.kb.ingestion import KbIngestionService
 from app.kb.milvus_store import MilvusKbStore
 from app.kb.mineru_parser import MinerUParser
 from app.repositories.kb_repo import KbRepository
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_DOCS_DIR = Path(__file__).resolve().parents[2] / "knowledge_docs"
 
@@ -79,6 +82,7 @@ async def seed_knowledge_docs(
     *,
     docs_dir: Path | None = None,
     mineru_mode: str = "cloud_api",
+    commit_per_doc: bool = False,
 ) -> SeedReport:
     """Idempotently scan *docs_dir* for PDFs and ingest new or non-indexed documents."""
     target_dir = docs_dir or DEFAULT_DOCS_DIR
@@ -91,36 +95,52 @@ async def seed_knowledge_docs(
     repo = KbRepository(session)
 
     for pdf_path in pdf_files:
-        raw_bytes = pdf_path.read_bytes()
-        sha256 = hashlib.sha256(raw_bytes).hexdigest()
-        existing = await repo.get_by_sha256(sha256)
-
-        if existing is not None:
-            if existing.status == "INDEXED":
-                report.skipped += 1
-                continue
-            result = await ingestion_service.ingest_document(existing.id)
-            if result.status == "INDEXED":
-                report.reindexed += 1
-            else:
-                report.failed += 1
+        try:
+            raw_bytes = pdf_path.read_bytes()
+        except OSError as exc:
+            logger.warning("Failed to read seed PDF %s: %s", pdf_path, exc)
+            report.failed += 1
             continue
 
-        title, category = infer_document_metadata(pdf_path)
-        doc = await repo.create_document(
-            title=title,
-            category=category,
-            file_name=pdf_path.name,
-            file_path=str(pdf_path.resolve()),
-            file_sha256=sha256,
-            file_size=len(raw_bytes),
-            mineru_mode=mineru_mode,
-            uploaded_by=None,
-        )
-        result = await ingestion_service.ingest_document(doc.id)
-        if result.status == "INDEXED":
-            report.created += 1
-        else:
+        try:
+            sha256 = hashlib.sha256(raw_bytes).hexdigest()
+            existing = await repo.get_by_sha256(sha256)
+
+            if existing is not None:
+                if existing.status == "INDEXED":
+                    report.skipped += 1
+                    continue
+                result = await ingestion_service.ingest_document(existing.id)
+                if commit_per_doc:
+                    await session.commit()
+                if result.status == "INDEXED":
+                    report.reindexed += 1
+                else:
+                    report.failed += 1
+                continue
+
+            title, category = infer_document_metadata(pdf_path)
+            doc = await repo.create_document(
+                title=title,
+                category=category,
+                file_name=pdf_path.name,
+                file_path=str(pdf_path.resolve()),
+                file_sha256=sha256,
+                file_size=len(raw_bytes),
+                mineru_mode=mineru_mode,
+                uploaded_by=None,
+            )
+            result = await ingestion_service.ingest_document(doc.id)
+            if commit_per_doc:
+                await session.commit()
+            if result.status == "INDEXED":
+                report.created += 1
+            else:
+                report.failed += 1
+        except Exception as exc:
+            logger.exception("Failed to process seed PDF %s: %s", pdf_path, exc)
+            if commit_per_doc:
+                await session.rollback()
             report.failed += 1
 
     return report
@@ -144,14 +164,13 @@ async def run_seed_cli(docs_dir: Path | None = None) -> SeedReport:
                 store=store,
                 storage_dir=settings.kb_storage_dir,
             )
-            report = await seed_knowledge_docs(
+            return await seed_knowledge_docs(
                 session,
                 service,
                 docs_dir=docs_dir,
                 mineru_mode=settings.mineru_mode,
+                commit_per_doc=True,
             )
-            await session.commit()
-            return report
     finally:
         await dispose_engine()
 
