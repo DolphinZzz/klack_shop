@@ -1,0 +1,41 @@
+[project]
+name = "sz-agent"
+version = "0.1.0"
+description = "KlackCraft (咔嗒客制化) intelligent customer service agent service"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic-settings>=2.6.0",
+    "httpx>=0.28.0",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
+    "psycopg[binary]>=3.2.0",
+    "psycopg-pool>=3.2.0",
+    "langchain>=1.0",
+    "langgraph>=1.0",
+    "langgraph-checkpoint-postgres>=2.0.0",
+    "langchain-deepseek>=0.1.0",
+    "langchain-openai>=0.3.0",
+    "pymilvus>=2.5.0",
+    "mineru-open-sdk>=0.1.0",
+    "pypdf>=5.0.0",
+    "reportlab>=4.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "aiosqlite>=0.20.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["."]
