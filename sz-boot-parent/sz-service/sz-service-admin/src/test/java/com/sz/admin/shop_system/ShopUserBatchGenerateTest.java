@@ -30,6 +30,7 @@ import java.util.List;
 @SpringBootTest(
         classes = AdminApplication.class,
         properties = {
+                "sz.mq.enabled=false",
                 "spring.config.on-not-found=ignore",
                 "spring.config.import="
                         + "optional:file:config/${spring.profiles.active:dev}/knife4j.yml,"
@@ -51,7 +52,7 @@ import java.util.List;
 class ShopUserBatchGenerateTest {
 
     /** 生成账号数量 */
-    private static final int COUNT = 20;
+    private static final int COUNT = 1000;
 
     /** 起始编号（分批生成时可调大，避免与旧批次重复） */
     private static final int START_INDEX = 1;

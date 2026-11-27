@@ -19,6 +19,7 @@
         <jackson.version>2.19.2</jackson.version>
         <aws.s3.version>2.32.29</aws.s3.version>
         <ip2region.version>2.7.0</ip2region.version>
+        <rocketmq-spring-boot.version>2.3.4</rocketmq-spring-boot.version>
     </properties>
 
     <!--全局依赖版本管理-->
@@ -180,6 +181,18 @@
                 <groupId>org.lionsoul</groupId>
                 <artifactId>ip2region</artifactId>
                 <version>${ip2region.version}</version>
+            </dependency>
+
+            <!-- 消息队列依赖版本管理 -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-amqp</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-spring-boot-starter</artifactId>
+                <version>${rocketmq-spring-boot.version}</version>
             </dependency>
         </dependencies>
 

@@ -1,0 +1,4 @@
+com.sz.mq.config.MqAutoConfiguration
+com.sz.mq.config.RabbitMqAutoConfiguration
+com.sz.mq.config.RocketMqEngineAutoConfiguration
+com.sz.mq.config.KafkaMqAutoConfiguration

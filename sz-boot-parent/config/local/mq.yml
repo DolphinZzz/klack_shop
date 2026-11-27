@@ -1,0 +1,61 @@
+sz:
+  mq:
+    enabled: true
+    # 策略模式切换：rabbitmq | rocketmq | kafka
+    type: rabbitmq
+    send-timeout-ms: 5000
+    consumer:
+      concurrency: 1
+      prefetch: 10
+      max-retry: 3
+      retry-initial-interval-ms: 500
+    rabbitmq:
+      exchange-prefix: sz.mq.direct.
+      dlx-prefix: sz.mq.dlx.
+      queue-prefix: sz.mq.queue.
+      dlq-prefix: sz.mq.dlq.
+      wait-for-confirms: true
+      confirm-timeout-ms: 5000
+    rocketmq:
+      consumer-group-prefix: sz-mq-consumer-
+      max-reconsume-times: 3
+    kafka:
+      group-id-prefix: sz-mq-
+      dlq-suffix: -dlt
+      auto-create-topics: true
+      default-partitions: 3
+      default-replicas: 1
+
+# 引擎原生连接配置（由 MqAutoConfigurationImportFilter 按 sz.mq.type 自动隔离，仅启用选中项）
+spring:
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: admin
+    password: admin
+    virtual-host: /
+    connection-timeout: 5000
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092
+    producer:
+      acks: all
+      retries: 3
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: sz-admin-default-group
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: sz-admin-producer-group
+    send-message-timeout: 5000
+    retry-times-when-send-failed: 2
