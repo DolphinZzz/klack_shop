@@ -57,11 +57,15 @@ def _escape_milvus_str(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
+def _normalize_categories(categories: list[str] | None) -> list[str] | None:
+    if categories is None:
+        return None
+    return [c.strip() for c in categories if c and c.strip()]
+
+
 def _build_search_filter(categories: list[str] | None) -> str:
     base = 'scope == "public"'
-    if not categories:
-        return base
-    cleaned = [c.strip() for c in categories if c and c.strip()]
+    cleaned = _normalize_categories(categories)
     if not cleaned:
         return base
     if len(cleaned) == 1:
@@ -240,7 +244,8 @@ class MilvusKbStore:
         min_score: float | None = None,
     ) -> list[KbSearchHit]:
         """Search public KB chunks filtered by optional categories and minimum cosine score."""
-        if categories is not None and len(categories) == 0:
+        normalized_categories = _normalize_categories(categories)
+        if normalized_categories is not None and len(normalized_categories) == 0:
             return []
         if top_k < 1:
             raise ValueError("top_k must be >= 1")
@@ -248,7 +253,7 @@ class MilvusKbStore:
             raise ValueError(f"Expected query vector dimension {self.dim}, got {len(query_vector)}")
         threshold = self.default_min_score if min_score is None else min_score
         return await asyncio.to_thread(
-            self._search_sync, query_vector, categories, top_k, threshold
+            self._search_sync, query_vector, normalized_categories, top_k, threshold
         )
 
 

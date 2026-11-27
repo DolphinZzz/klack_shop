@@ -51,6 +51,8 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         if session_factory is None:
             session_factory = get_session_factory()
             application.state.session_factory = session_factory
+            if owns_engine:
+                stack.push_async_callback(dispose_engine)
 
         checkpointer = getattr(application.state, "checkpointer", None)
         if checkpointer is None:
@@ -63,6 +65,8 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         if mall_client is None:
             mall_client = MallInternalClient.from_settings(settings)
             application.state.mall_client = mall_client
+            if owns_mall_client and hasattr(mall_client, "aclose"):
+                stack.push_async_callback(mall_client.aclose)
 
         kb_store = getattr(application.state, "kb_store", None)
         if kb_store is None:
@@ -115,13 +119,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
                 ),
             )
 
-        try:
-            yield
-        finally:
-            if owns_mall_client and hasattr(mall_client, "aclose"):
-                await mall_client.aclose()
-            if owns_engine:
-                await dispose_engine()
+        yield
 
 
 def create_app(

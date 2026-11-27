@@ -93,16 +93,19 @@ const clearPollTimer = () => {
   }
 };
 
-const schedulePollIfNeeded = (rows: KbDocumentRow[]) => {
+const schedulePollTimer = () => {
   clearPollTimer();
-  const parsing = rows.some(row => row.status === 'PENDING' || row.status === 'PARSING');
-  hasActiveParsing.value = parsing;
-  if (parsing && isViewActive) {
+  if (hasActiveParsing.value && isViewActive) {
     pollTimer = setTimeout(() => {
       pollTimer = null;
       proTableRef.value?.getTableList();
     }, POLL_INTERVAL_MS);
   }
+};
+
+const schedulePollIfNeeded = (rows: KbDocumentRow[]) => {
+  hasActiveParsing.value = rows.some(row => row.status === 'PENDING' || row.status === 'PARSING');
+  schedulePollTimer();
 };
 
 const enumFieldNames = {
@@ -185,11 +188,19 @@ const searchColumns: SearchProps[] = [
 const getTableList = async (params: KbDocumentQuery) => {
   const seq = ++fetchSeq;
   clearPollTimer();
-  const res = await getKbDocumentListApi(params);
-  if (seq === fetchSeq) {
-    schedulePollIfNeeded(res.data?.rows || []);
+  let succeeded = false;
+  try {
+    const res = await getKbDocumentListApi(params);
+    succeeded = true;
+    if (seq === fetchSeq) {
+      schedulePollIfNeeded(res.data?.rows || []);
+    }
+    return res;
+  } finally {
+    if (!succeeded && seq === fetchSeq && hasActiveParsing.value) {
+      schedulePollTimer();
+    }
   }
-  return res;
 };
 
 const openUploadDialog = () => {

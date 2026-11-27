@@ -300,7 +300,7 @@ async def upload_kb_document(
         )
 
     raw_filename = file.filename or ""
-    if not raw_filename.lower().endswith(".pdf") and not raw_bytes.startswith(b"%PDF"):
+    if not raw_filename.lower().endswith(".pdf") or not raw_bytes.startswith(b"%PDF"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="仅支持上传 PDF 格式文档",

@@ -12,7 +12,7 @@
     >
       <template #tableHeader>
         <div class="ticket-header">
-          <el-tabs v-model="activeStatusTab" class="ticket-tabs" @tab-change="handleStatusTabChange">
+          <el-tabs :model-value="activeStatusTab" class="ticket-tabs" @tab-change="handleStatusTabChange">
             <el-tab-pane v-for="item in statusTabs" :key="item.name" :name="item.name" :label="item.label" />
           </el-tabs>
         </div>
@@ -156,10 +156,9 @@ const getTableList = (params: CsTicketQuery) => {
 const handleStatusTabChange = (name: string | number) => {
   if (!proTableRef.value) return;
   const tabName = String(name);
-  const searchParam = proTableRef.value.searchParam as CsTicketQuery;
-  const currentStatus = searchParam.status || 'all';
-  if (currentStatus === tabName) return;
+  if (activeStatusTab.value === tabName) return;
   activeStatusTab.value = tabName;
+  const searchParam = proTableRef.value.searchParam as CsTicketQuery;
   if (tabName === 'all') {
     delete searchParam.status;
   } else {

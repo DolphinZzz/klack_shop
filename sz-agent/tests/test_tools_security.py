@@ -576,6 +576,18 @@ async def test_kb_tools_filter_categories_and_after_sales_tools_preserve_ground_
     res_no_kb = await no_kb_tools["search_presale_kb"].coroutine(query="红轴")
     assert res_no_kb["ok"] is True and res_no_kb["found"] is False
 
+    # Failing retriever must NOT leak raw exception internals to LLM-visible message
+    class BrokenRetriever:
+        async def retrieve(self, query: str, categories: list[str] | None = None, top_k: int = 5):
+            raise RuntimeError("Milvus connection refused at 10.0.0.42:19530 secret-dsn")
+
+    broken_tools = {t.name: t for t in build_after_sales_tools(object(), BrokenRetriever())}
+    res_broken = await broken_tools["search_policy_and_law_kb"].coroutine(query="七天无理由")
+    assert res_broken["ok"] is False and res_broken["found"] is False
+    assert "10.0.0.42" not in res_broken["message"]
+    assert "secret-dsn" not in res_broken["message"]
+    assert "知识库检索暂时不可用" in res_broken["message"]
+
 
 @pytest.mark.asyncio
 async def test_catalog_tools_and_shipped_order_tracking_notice():

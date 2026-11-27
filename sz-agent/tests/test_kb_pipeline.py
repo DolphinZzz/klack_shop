@@ -471,6 +471,17 @@ async def test_milvus_store_schema_index_scope_filter_and_retriever():
     assert 'scope == "public"' in sent_filter
     assert '"consumer_law"' in sent_filter and '"mall_policy"' in sent_filter
 
+    # Empty or whitespace-only category filters must return [] without unfiltered search
+    calls_before = len(fake_client.search_calls)
+    assert await store.search([0.5] * 1024, categories=[]) == []
+    assert await store.search([0.5] * 1024, categories=[" ", ""]) == []
+    assert len(fake_client.search_calls) == calls_before
+
+    # Whitespace around valid category names is stripped cleanly
+    filtered_hits = await store.search([0.5] * 1024, categories=[" mall_policy ", " "])
+    assert len(filtered_hits) == 1
+    assert fake_client.search_calls[-1]["filter"] == 'scope == "public" and category == "mall_policy"'
+
 
 @pytest.mark.asyncio
 async def test_ingestion_deletes_old_vectors_before_upsert_and_handles_failure(async_db_session, tmp_path):

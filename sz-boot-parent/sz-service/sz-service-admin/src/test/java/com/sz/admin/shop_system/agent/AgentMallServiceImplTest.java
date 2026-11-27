@@ -606,6 +606,29 @@ class AgentMallServiceImplTest {
         assertEquals("ORDER_205", page.getRows().get(0).getOrderNo());
     }
 
+    @Test
+    void getProductDetail_nullsSkuFlashPriceWhenNoActiveFlashSale() {
+        ShopProduct product = buildActiveProduct(10L, 1, BigDecimal.ZERO);
+        when(shopProductService.getById(10L)).thenReturn(product);
+
+        ShopProductAttrValue sku = buildActiveSku(100L, 10L, new BigDecimal("399.00"), 10);
+        sku.setFlashPrice(new BigDecimal("199.00"));
+        when(shopProductAttrValueService.getListByProductId(10L)).thenReturn(List.of(sku));
+
+        when(shopFlashSaleService.getAvailableByProductId(eq(10L), any(LocalDateTime.class))).thenReturn(null);
+        AgentMallVO.ProductDetail normalDetail = agentMallService.getProductDetail(10L);
+        assertFalse(Boolean.TRUE.equals(normalDetail.getActiveFlashSale()));
+        assertNull(normalDetail.getSkus().get(0).getFlashPrice());
+
+        ShopFlashSale activeFlashSale = new ShopFlashSale();
+        activeFlashSale.setId(88L);
+        activeFlashSale.setProductId(10L);
+        when(shopFlashSaleService.getAvailableByProductId(eq(10L), any(LocalDateTime.class))).thenReturn(activeFlashSale);
+        AgentMallVO.ProductDetail flashDetail = agentMallService.getProductDetail(10L);
+        assertTrue(Boolean.TRUE.equals(flashDetail.getActiveFlashSale()));
+        assertEquals(0, new BigDecimal("199.00").compareTo(flashDetail.getSkus().get(0).getFlashPrice()));
+    }
+
     private static ShopProduct buildActiveProduct(Long id, int isPostage, BigDecimal postage) {
         ShopProduct product = new ShopProduct();
         product.setId(id);

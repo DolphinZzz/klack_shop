@@ -969,6 +969,74 @@ async def test_lifespan_initializes_dependencies_cleanly(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_lifespan_cleans_up_resources_when_startup_fails(monkeypatch, tmp_path):
+    from contextlib import asynccontextmanager
+    from app import main as main_module
+
+    events: list[str] = []
+    db_file = tmp_path / "lifespan_fail.db"
+    engine = create_async_engine(f"sqlite+aiosqlite:///{db_file}", echo=False)
+    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    @asynccontextmanager
+    async def fake_open_checkpointer(dsn: str):
+        events.append("checkpointer_open")
+        try:
+            yield InMemorySaver()
+        finally:
+            events.append("checkpointer_close")
+
+    class FailingMilvus:
+        @classmethod
+        def from_settings(cls, settings):
+            return cls()
+
+        async def ensure_collection(self):
+            events.append("milvus_fail")
+            raise ConnectionError("Milvus unreachable")
+
+    class FakeLifecycleMall:
+        @classmethod
+        def from_settings(cls, settings):
+            events.append("mall_init")
+            return cls()
+
+        async def aclose(self):
+            events.append("mall_close")
+
+    async def fake_dispose_engine():
+        events.append("dispose_engine")
+
+    monkeypatch.setattr(main_module, "open_postgres_checkpointer", fake_open_checkpointer)
+    monkeypatch.setattr(main_module, "MilvusKbStore", FailingMilvus)
+    monkeypatch.setattr(main_module, "MallInternalClient", FakeLifecycleMall)
+    monkeypatch.setattr(main_module, "get_session_factory", lambda: session_factory)
+    monkeypatch.setattr(main_module, "dispose_engine", fake_dispose_engine)
+
+    cfg = Settings(
+        agent_internal_secret=INTERNAL_SECRET,
+        postgres_dsn="postgresql+asyncpg://kada:pass@127.0.0.1:5432/kada_cs",
+        deepseek_api_key="sk-test",
+        dashscope_api_key="",
+        kb_storage_dir=str(tmp_path / "kb"),
+    )
+    app = main_module.create_app(settings=cfg)
+    with pytest.raises(ConnectionError, match="Milvus unreachable"):
+        async with app.router.lifespan_context(app):
+            pass
+
+    assert events == [
+        "checkpointer_open",
+        "mall_init",
+        "milvus_fail",
+        "mall_close",
+        "checkpointer_close",
+        "dispose_engine",
+    ]
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_resume_stream_cancel_and_409_without_pending_interrupt(e2e_env):
     mall = FakeMallClient()
     env = e2e_env(
@@ -1138,7 +1206,7 @@ async def test_kb_upload_validation_errors_and_unique_storage_paths(e2e_env, mon
         )
         assert bad_cat_res.status_code == 400
 
-        # Non-PDF file -> 400
+        # Non-PDF file -> 400 (requires BOTH .pdf suffix AND %PDF magic header)
         non_pdf_res = await client.post(
             "/internal/cs/admin/kb/documents/upload",
             headers=_admin_headers(),
@@ -1146,6 +1214,22 @@ async def test_kb_upload_validation_errors_and_unique_storage_paths(e2e_env, mon
             data={"category": "mall_policy", "title": "非PDF"},
         )
         assert non_pdf_res.status_code == 400
+
+        fake_pdf_ext_res = await client.post(
+            "/internal/cs/admin/kb/documents/upload",
+            headers=_admin_headers(),
+            files={"file": ("disguised.pdf", b"<html>not-a-pdf</html>", "application/pdf")},
+            data={"category": "mall_policy", "title": "伪造PDF后缀"},
+        )
+        assert fake_pdf_ext_res.status_code == 400
+
+        non_pdf_ext_res = await client.post(
+            "/internal/cs/admin/kb/documents/upload",
+            headers=_admin_headers(),
+            files={"file": ("payload.txt", b"%PDF-1.4 disguised", "text/plain")},
+            data={"category": "mall_policy", "title": "缺少PDF后缀"},
+        )
+        assert non_pdf_ext_res.status_code == 400
 
         # Oversized PDF (> MAX_KB_PDF_BYTES) -> 413
         oversized_res = await client.post(

@@ -253,6 +253,45 @@ class AgentProxyServiceTest {
     }
 
     @Test
+    void forwardMultipart_streamsInputStreamWithoutBufferingGetBytes() throws Exception {
+        HttpServer server = startStubServer();
+        AtomicReference<byte[]> capturedBody = new AtomicReference<>();
+
+        server.createContext("/internal/cs/admin/kb/documents/upload", exchange -> {
+            capturedBody.set(exchange.getRequestBody().readAllBytes());
+            byte[] resp = "{\"id\":\"doc-stream\"}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, resp.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(resp);
+            }
+        });
+
+        byte[] payload = ("%PDF-1.4\n" + "A".repeat(256 * 1024)).getBytes(StandardCharsets.UTF_8);
+        MockMultipartFile streamingOnlyFile = new MockMultipartFile(
+                "file", "large.pdf", "application/pdf", payload) {
+            @Override
+            public byte[] getBytes() {
+                throw new AssertionError("forwardMultipart must stream via getInputStream() instead of getBytes()");
+            }
+        };
+
+        AgentProxyService proxyService = new AgentProxyService(createProperties(server));
+        ResponseEntity<byte[]> response = proxyService.forwardMultipart(
+                "/internal/cs/admin/kb/documents/upload",
+                null,
+                streamingOnlyFile,
+                Map.of("category", "mall_policy"),
+                new HttpHeaders(),
+                ProxyIdentity.admin(7L, "Admin"));
+
+        assertEquals(200, response.getStatusCode().value());
+        String body = new String(capturedBody.get(), StandardCharsets.UTF_8);
+        assertTrue(body.contains("filename=\"large.pdf\""));
+        assertTrue(body.contains("%PDF-1.4\n" + "A".repeat(1024)));
+    }
+
+    @Test
     void forwardSse_relaysEventsAndCancelsUpstreamOnEmitterCompletion() throws Exception {
         HttpServer server = startStubServer();
         CountDownLatch eventsSent = new CountDownLatch(1);
@@ -378,8 +417,10 @@ class AgentProxyServiceTest {
     @Test
     void clientCsController_setsSseAntiBufferingHeadersAndRelaysEvents() throws Exception {
         HttpServer server = startStubServer();
+        Map<String, List<String>> capturedHeaders = new ConcurrentHashMap<>();
         server.createContext("/internal/cs/client/sessions/sess-1/chat/stream", exchange -> {
             exchange.getRequestBody().readAllBytes();
+            exchange.getRequestHeaders().forEach((k, v) -> capturedHeaders.put(k.toLowerCase(), List.copyOf(v)));
             exchange.getResponseHeaders().set("Content-Type", "text/event-stream;charset=UTF-8");
             byte[] body = ("event: meta\ndata: {\"session_id\":\"sess-1\"}\n\n"
                     + "event: done\ndata: {\"finish_reason\":\"stop\"}\n\n").getBytes(StandardCharsets.UTF_8);
@@ -396,7 +437,7 @@ class AgentProxyServiceTest {
             stpUserMock.when(StpUserUtil::getLoginIdAsLong).thenReturn(10086L);
 
             MvcResult asyncResult = mockMvc.perform(post("/client/cs/sessions/sess-1/chat/stream")
-                            .accept(MediaType.APPLICATION_JSON, MediaType.TEXT_EVENT_STREAM)
+                            .accept(MediaType.TEXT_EVENT_STREAM, MediaType.APPLICATION_JSON)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"message\":\"推荐键盘\"}"))
                     .andExpect(request().asyncStarted())
@@ -408,6 +449,7 @@ class AgentProxyServiceTest {
                     .andExpect(status().isOk())
                     .andReturn();
 
+            assertEquals(List.of(MediaType.TEXT_EVENT_STREAM_VALUE), capturedHeaders.get("accept"));
             String sseBody = completed.getResponse().getContentAsString(StandardCharsets.UTF_8);
             assertTrue(sseBody.contains("event:meta"), "SSE body missing meta event: " + sseBody);
             assertTrue(sseBody.contains("\"session_id\":\"sess-1\""), "SSE body missing session payload: " + sseBody);
@@ -582,6 +624,14 @@ class AgentProxyServiceTest {
                             .accept(MediaType.APPLICATION_JSON)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"action\":\"confirm\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.code").value("C1008"));
+
+            mockMvc.perform(post("/client/cs/sessions/bad$id/chat/stream")
+                            .accept(MediaType.TEXT_EVENT_STREAM, MediaType.APPLICATION_JSON)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"message\":\"hi\"}"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                     .andExpect(jsonPath("$.code").value("C1008"));

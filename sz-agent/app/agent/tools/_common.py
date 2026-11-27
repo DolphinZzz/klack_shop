@@ -204,7 +204,7 @@ async def search_kb(
             "hits": [],
             "citations": [],
             "found": False,
-            "message": f"知识库检索暂时不可用，请引导用户稍后重试或转人工客服确认（{exc}）。",
+            "message": "知识库检索暂时不可用，请引导用户稍后重试或转人工客服确认。",
         }
 
     hits, citations = format_kb_results(list(raw_hits or []))

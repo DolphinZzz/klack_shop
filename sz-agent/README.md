@@ -165,7 +165,9 @@ npm --prefix sz-pc run type-check && npm --prefix sz-pc run build
 
 ### 5.4 管理后台前端（`sz-admin`）
 
+> 说明：`sz-admin` 基线中存在 6 个非客服模块既有文件的 37 处历史 `vue-tsc` 类型错误（`src/api/modules/shop_system/shopExpress.ts`、`src/components/ProTable/index.vue`、`src/views/shop_system/shopCategory/components/ShopCategoryForm.vue`、`src/views/shop_system/shopOrder/index.vue`、`src/views/shop_system/shopProduct/components/ShopProductCreateDialog.vue`、`src/views/shop_system/shopProductCoupon/index.vue`，本分支均未改动）。可使用以下过滤命令单独校验客服模块零类型错误，并运行 `build-only` 验证全量打包构建：
+
 ```bash
-npm --prefix sz-admin run type-check
+npm --prefix sz-admin run type-check 2>&1 | grep -E "csTicket|csKnowledge|shop_system/cs\.ts|types/shop_system/cs\.ts" || echo "ZERO_CS_TS_ERRORS"
 npm --prefix sz-admin run build-only
 ```

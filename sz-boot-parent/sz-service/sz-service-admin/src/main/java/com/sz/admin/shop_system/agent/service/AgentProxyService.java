@@ -18,16 +18,19 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.util.UriUtils;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.SequenceInputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
@@ -178,14 +181,19 @@ public class AgentProxyService {
             return jsonErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, "C9999", "智能客服服务未启用");
         }
         String requestId = UUID.randomUUID().toString();
-        try {
+        String boundary = "----KadaAgentBoundary" + UUID.randomUUID().toString().replace("-", "");
+        try (InputStream fileStream = file.getInputStream();
+             InputStream multipartStream = buildMultipartStream(boundary, file, fileStream, formFields)) {
             URI targetUri = buildTargetUri(upstreamPath, queryString);
-            String boundary = "----KadaAgentBoundary" + UUID.randomUUID().toString().replace("-", "");
-            byte[] multipartBody = buildMultipartBody(boundary, file, formFields);
-
+            AtomicBoolean supplied = new AtomicBoolean(false);
             HttpRequest.Builder builder = HttpRequest.newBuilder(targetUri)
                     .timeout(MULTIPART_REQUEST_TIMEOUT)
-                    .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody));
+                    .POST(HttpRequest.BodyPublishers.ofInputStream(() -> {
+                        if (!supplied.compareAndSet(false, true)) {
+                            throw new IllegalStateException("Multipart body stream cannot be replayed");
+                        }
+                        return multipartStream;
+                    }));
 
             applySanitizedHeaders(builder, incomingHeaders, identity, requestId, true);
             builder.header(HttpHeaders.CONTENT_TYPE, "multipart/form-data; boundary=" + boundary);
@@ -380,7 +388,7 @@ public class AgentProxyService {
 
         applySanitizedHeaders(builder, incomingHeaders, identity, requestId, false);
         if (sse) {
-            builder.header(HttpHeaders.ACCEPT, MediaType.TEXT_EVENT_STREAM_VALUE);
+            builder.setHeader(HttpHeaders.ACCEPT, MediaType.TEXT_EVENT_STREAM_VALUE);
         }
         if (body != null && body.length > 0 && !hasHeaderIgnoreCase(incomingHeaders, HttpHeaders.CONTENT_TYPE)) {
             builder.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
@@ -573,8 +581,11 @@ public class AgentProxyService {
         return URI.create(full);
     }
 
-    private byte[] buildMultipartBody(String boundary, MultipartFile file, Map<String, String> formFields) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+    private InputStream buildMultipartStream(String boundary,
+                                             MultipartFile file,
+                                             InputStream fileStream,
+                                             Map<String, String> formFields) throws IOException {
+        ByteArrayOutputStream prefix = new ByteArrayOutputStream();
         if (formFields != null) {
             for (Map.Entry<String, String> entry : formFields.entrySet()) {
                 if (entry.getKey() == null || entry.getValue() == null) {
@@ -584,11 +595,11 @@ public class AgentProxyService {
                 if (fieldName.isEmpty()) {
                     continue;
                 }
-                out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
-                out.write(("Content-Disposition: form-data; name=\"" + fieldName + "\"\r\n").getBytes(StandardCharsets.UTF_8));
-                out.write("Content-Type: text/plain; charset=UTF-8\r\n\r\n".getBytes(StandardCharsets.UTF_8));
-                out.write(entry.getValue().getBytes(StandardCharsets.UTF_8));
-                out.write("\r\n".getBytes(StandardCharsets.UTF_8));
+                prefix.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+                prefix.write(("Content-Disposition: form-data; name=\"" + fieldName + "\"\r\n").getBytes(StandardCharsets.UTF_8));
+                prefix.write("Content-Type: text/plain; charset=UTF-8\r\n\r\n".getBytes(StandardCharsets.UTF_8));
+                prefix.write(entry.getValue().getBytes(StandardCharsets.UTF_8));
+                prefix.write("\r\n".getBytes(StandardCharsets.UTF_8));
             }
         }
 
@@ -598,13 +609,17 @@ public class AgentProxyService {
             fileContentType = MediaType.APPLICATION_PDF_VALUE;
         }
 
-        out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
-        out.write(("Content-Disposition: form-data; name=\"file\"; filename=\"" + safeFilename + "\"\r\n")
+        prefix.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+        prefix.write(("Content-Disposition: form-data; name=\"file\"; filename=\"" + safeFilename + "\"\r\n")
                 .getBytes(StandardCharsets.UTF_8));
-        out.write(("Content-Type: " + fileContentType + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
-        out.write(file.getBytes());
-        out.write(("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
-        return out.toByteArray();
+        prefix.write(("Content-Type: " + fileContentType + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+
+        byte[] suffix = ("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8);
+
+        return new SequenceInputStream(Collections.enumeration(List.of(
+                new ByteArrayInputStream(prefix.toByteArray()),
+                fileStream,
+                new ByteArrayInputStream(suffix))));
     }
 
     /**

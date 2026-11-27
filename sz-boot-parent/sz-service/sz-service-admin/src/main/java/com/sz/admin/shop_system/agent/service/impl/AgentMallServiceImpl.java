@@ -244,25 +244,28 @@ public class AgentMallServiceImpl implements AgentMallService {
         detail.setIsBest(product.getIsBest());
         detail.setIsNew(product.getIsNew());
         detail.setIsSeckill(product.getIsSeckill());
-        detail.setActiveFlashSale(activeFlashSale != null);
+        boolean hasActiveFlashSale = activeFlashSale != null;
+        detail.setActiveFlashSale(hasActiveFlashSale);
         detail.setFlashSaleId(activeFlashSale == null ? null : activeFlashSale.getId());
         detail.setIsPostage(product.getIsPostage());
         detail.setPostage(product.getPostage());
         detail.setUnitName(product.getUnitName());
         detail.setDesc(product.getDesc());
         List<AgentMallVO.ProductSku> skus = skuEntities == null ? Collections.emptyList()
-                : skuEntities.stream().map(this::toProductSku).collect(Collectors.toList());
+                : skuEntities.stream()
+                        .map(sku -> toProductSku(sku, hasActiveFlashSale))
+                        .collect(Collectors.toList());
         detail.setSkus(skus);
         return detail;
     }
 
-    private AgentMallVO.ProductSku toProductSku(ShopProductAttrValue sku) {
+    private AgentMallVO.ProductSku toProductSku(ShopProductAttrValue sku, boolean activeFlashSale) {
         AgentMallVO.ProductSku vo = new AgentMallVO.ProductSku();
         vo.setSkuId(sku.getId());
         vo.setSku(sku.getSku());
         vo.setPrice(sku.getPrice());
         vo.setOtPrice(sku.getOtPrice());
-        vo.setFlashPrice(sku.getFlashPrice());
+        vo.setFlashPrice(activeFlashSale ? sku.getFlashPrice() : null);
         vo.setStock(sku.getStock());
         vo.setImage(sku.getImage());
         vo.setIsDefault(sku.getIsDefault());

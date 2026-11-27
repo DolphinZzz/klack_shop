@@ -184,7 +184,7 @@ async function streamCsSse(
   const authStore = useAuthStore();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    Accept: 'text/event-stream'
+    Accept: 'text/event-stream, application/json'
   };
   if (authStore.token) {
     headers.Authorization = `Bearer ${authStore.token}`;

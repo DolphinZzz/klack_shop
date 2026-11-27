@@ -2,6 +2,6 @@ sz:
   agent:
     enabled: true
     base-url: ${AGENT_BASE_URL:http://127.0.0.1:8000}
-    internal-secret: ${AGENT_INTERNAL_SECRET:kada-local-internal-secret}
+    internal-secret: ${AGENT_INTERNAL_SECRET:}
     connect-timeout-ms: 5000
     stream-timeout-ms: 300000
