@@ -268,14 +268,20 @@ async function streamCsSse(
           dispatchSseFrame(frame, handlers, state);
         }
       }
+      if (state.sawTerminal) {
+        await reader.cancel().catch(() => undefined);
+        break;
+      }
     }
 
-    buffer += decoder.decode();
-    if (buffer.trim()) {
-      const tailFrames = buffer.split(/\r?\n\r?\n/);
-      for (const frame of tailFrames) {
-        if (frame.trim()) {
-          dispatchSseFrame(frame, handlers, state);
+    if (!state.sawTerminal) {
+      buffer += decoder.decode();
+      if (buffer.trim()) {
+        const tailFrames = buffer.split(/\r?\n\r?\n/);
+        for (const frame of tailFrames) {
+          if (frame.trim()) {
+            dispatchSseFrame(frame, handlers, state);
+          }
         }
       }
     }
@@ -284,6 +290,9 @@ async function streamCsSse(
       handlers.onDone?.({ message_id: '', finish_reason: 'stop' });
     }
   } catch (error) {
+    if (state.sawTerminal) {
+      return;
+    }
     if ((error instanceof DOMException && error.name === 'AbortError') || signal?.aborted) {
       handlers.onAbort?.();
       return;

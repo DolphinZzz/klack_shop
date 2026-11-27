@@ -41,7 +41,7 @@ def _build_ticket_repo_factory(session_factory: async_sessionmaker[AsyncSession]
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-    """Initialize PostgreSQL checkpointer, Milvus collection, mall client, and compiled graph."""
+    """初始化 PostgreSQL 检查点保存器、Milvus 集合、内网商城客户端及编译后的状态图。"""
     settings: Settings = getattr(application.state, "settings", None) or get_settings()
     owns_engine = getattr(application.state, "session_factory", None) is None
     owns_mall_client = getattr(application.state, "mall_client", None) is None
@@ -138,7 +138,7 @@ def create_app(
     sse_heartbeat_interval: float = 15.0,
     sse_disconnect_check_interval: float = 0.2,
 ) -> FastAPI:
-    """Create and configure the FastAPI application for sz-agent."""
+    """创建并配置 `sz-agent` 的 FastAPI 应用实例。"""
     application = FastAPI(title="sz-agent", version="0.1.0", lifespan=lifespan)
 
     if settings is not None:
@@ -163,7 +163,7 @@ def create_app(
     application.state.sse_heartbeat_interval = sse_heartbeat_interval
     application.state.sse_disconnect_check_interval = sse_disconnect_check_interval
 
-    # Support ASGI transport tests that bypass FastAPI lifespan startup
+    # 支持绕过 FastAPI lifespan 启动流程的 ASGI 传输层测试
     if graph is not None:
         application.state.graph = graph
     elif checkpointer is not None and session_factory is not None:

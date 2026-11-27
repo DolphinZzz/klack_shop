@@ -13,14 +13,14 @@ def slice_new_messages(
     result_messages: Sequence[AnyMessage],
     prior_count: int,
 ) -> list[AnyMessage]:
-    """Return only the newly generated messages from an inner agent invocation."""
+    """仅返回内部智能体调用新生成的消息列表。"""
     if prior_count <= 0:
         return list(result_messages)
     return list(result_messages[prior_count:])
 
 
 def parse_tool_message_payload(content: Any) -> dict[str, Any] | None:
-    """Safely decode a ToolMessage payload dictionary from dict or JSON text."""
+    """安全地从字典或 JSON 文本中解析 `ToolMessage` 载荷字典。"""
     if isinstance(content, Mapping):
         return dict(content)
     text = coerce_message_text(content).strip()
@@ -39,7 +39,7 @@ def collect_unique_citations(
     messages: Sequence[AnyMessage],
     tool_names: set[str],
 ) -> list[dict[str, Any]]:
-    """Extract and deduplicate KB citations produced by *tool_names* in *messages*."""
+    """提取并去重 `messages` 中由指定 `tool_names` 产生的知识库引用条目。"""
     citations: list[dict[str, Any]] = []
     seen_keys: set[tuple[str, str, str]] = set()
     for msg in messages:

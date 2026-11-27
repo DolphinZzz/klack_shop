@@ -20,7 +20,7 @@ DEFAULT_FLASH_MAX_PAGES = 20
 
 
 def _split_pdf_pages(pdf_path: Path, max_pages: int, out_dir: Path) -> list[Path]:
-    """Split a PDF into page-bounded chunks when it exceeds *max_pages*."""
+    """当 PDF 页数超过 *max_pages* 时，按页数上限拆分为多个子 PDF。"""
     reader = PdfReader(str(pdf_path))
     total_pages = len(reader.pages)
     if total_pages == 0:
@@ -42,7 +42,7 @@ def _split_pdf_pages(pdf_path: Path, max_pages: int, out_dir: Path) -> list[Path
 
 
 def _extract_http_markdown(payload: Any) -> str | None:
-    """Extract Markdown text from common MinerU local HTTP JSON response shapes."""
+    """从常见的 MinerU 本地 HTTP JSON 响应结构中提取 Markdown 文本。"""
     if not isinstance(payload, dict):
         return None
     for key in ("md_content", "markdown", "content"):
@@ -71,7 +71,7 @@ def _extract_http_markdown(payload: Any) -> str | None:
 
 
 class MinerUParser:
-    """Unified PDF-to-Markdown adapter supporting MinerU cloud, local HTTP, and CLI modes."""
+    """支持 MinerU 云端 API、本地 HTTP 与本地 CLI 模式的统一 PDF 转 Markdown 适配器。"""
 
     def __init__(
         self,
@@ -111,7 +111,7 @@ class MinerUParser:
 
     @classmethod
     def from_settings(cls, settings: Settings, **overrides: Any) -> MinerUParser:
-        """Instantiate MinerUParser from runtime application settings."""
+        """根据运行时应用配置实例化 MinerUParser。"""
         kwargs: dict[str, Any] = {
             "mode": settings.mineru_mode,
             "api_token": settings.mineru_api_token,
@@ -128,7 +128,7 @@ class MinerUParser:
         doc_id: str | UUID | None = None,
         cache_path: Path | None = None,
     ) -> str:
-        """Parse a local PDF file to Markdown and optionally persist raw Markdown cache."""
+        """将本地 PDF 文件解析为 Markdown，并按需持久化原始 Markdown 缓存。"""
         path = Path(pdf_path)
         if not path.exists():
             raise FileNotFoundError(f"PDF file not found: {path}")

@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 @pytest_asyncio.fixture
 async def async_db_session() -> AsyncIterator[AsyncSession]:
-    """Provide an isolated in-memory SQLite async session with foreign keys enabled."""
+    """提供启用外键约束的隔离内存 SQLite 异步会话。"""
     from app.db.base import Base
-    import app.db.models  # noqa: F401 - register ORM metadata
+    import app.db.models  # noqa: F401 - 注册 ORM 元数据
 
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
 

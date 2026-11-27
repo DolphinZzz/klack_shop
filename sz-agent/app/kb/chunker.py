@@ -19,7 +19,7 @@ _SENTENCE_BREAKS = ("。", "；", "！", "？", ".", ";", "!", "?", "\n")
 
 @dataclass(slots=True)
 class KbChunk:
-    """Structure-aware knowledge base chunk ready for embedding and Milvus storage."""
+    """结构感知的知识库文本分块，可直接用于向量化并写入 Milvus。"""
 
     chunk_id: str
     doc_id: str
@@ -43,7 +43,7 @@ class _AtomicUnit:
 
 
 def _clean_lines(markdown_text: str) -> list[str]:
-    """Normalize line endings and remove header/footer page noise outside code fences."""
+    """统一换行符并剔除代码块以外的页眉页脚页码噪声。"""
     normalized = markdown_text.replace("\r\n", "\n").replace("\r", "\n")
     cleaned: list[str] = []
     in_fence = False
@@ -60,7 +60,7 @@ def _clean_lines(markdown_text: str) -> list[str]:
 
 
 def _split_blocks(body_lines: list[str], base_page_no: int) -> list[tuple[str, int, bool]]:
-    """Group section lines into prose paragraphs, Markdown/HTML tables, and legal article blocks."""
+    """将章节文本行切分为正文段落、Markdown/HTML 表格及法条块。"""
     blocks: list[tuple[str, int, bool]] = []
     current_lines: list[str] = []
     current_page = base_page_no
@@ -90,7 +90,7 @@ def _split_blocks(body_lines: list[str], base_page_no: int) -> list[tuple[str, i
             i += 1
             continue
 
-        # Preserve HTML <table>...</table> blocks intact
+        # 保持 HTML <table>...</table> 表格块完整
         if stripped.lower().startswith("<table"):
             _flush_prose()
             tbl_lines = [line]
@@ -107,7 +107,7 @@ def _split_blocks(body_lines: list[str], base_page_no: int) -> list[tuple[str, i
             i += 1
             continue
 
-        # Preserve Markdown pipe tables intact
+        # 保持 Markdown 管道表格完整
         if stripped.startswith("|") and i + 1 < n and "|" in body_lines[i + 1]:
             sep_candidate = body_lines[i + 1].strip()
             if sep_candidate.startswith("|") and "-" in sep_candidate:
@@ -124,7 +124,7 @@ def _split_blocks(body_lines: list[str], base_page_no: int) -> list[tuple[str, i
                 blocks.append(("\n".join(tbl_lines).strip(), tbl_page, True))
                 continue
 
-        # Start a new unit on legal article boundary (e.g. "第二十五条 ...")
+        # 遇到法条边界（如“第二十五条 ...”）时开启新单元
         if _LAW_ARTICLE_RE.match(stripped) and current_lines:
             _flush_prose()
 
@@ -138,7 +138,7 @@ def _split_blocks(body_lines: list[str], base_page_no: int) -> list[tuple[str, i
 
 
 def _parse_atomic_units(markdown_text: str, doc_title: str) -> list[_AtomicUnit]:
-    """Parse Markdown heading hierarchy and legal article boundaries into atomic units."""
+    """解析 Markdown 标题层级与法条边界，拆分为原子单元。"""
     lines = _clean_lines(markdown_text)
     heading_stack: list[tuple[int, str]] = []
     current_page = 0
@@ -239,7 +239,7 @@ def _parse_atomic_units(markdown_text: str, doc_title: str) -> list[_AtomicUnit]
 
 
 def _split_markdown_table(text: str, max_chars: int) -> list[str]:
-    """Split an oversized Markdown pipe table by rows while repeating its header."""
+    """按行切分超长 Markdown 管道表格，并在各分片重复保留表头。"""
     lines = [line for line in text.splitlines() if line.strip()]
     hdr_idx = -1
     for idx in range(len(lines) - 1):
@@ -279,7 +279,7 @@ def _split_markdown_table(text: str, max_chars: int) -> list[str]:
 
 
 def _split_long_text(text: str, max_chars: int, overlap: int) -> list[str]:
-    """Split oversized prose into overlapping slices bounded by *max_chars*."""
+    """将超长正文切分为不超过 *max_chars* 的重叠文本分片。"""
     if len(text) <= max_chars:
         return [text]
 
@@ -315,7 +315,7 @@ def _split_long_text(text: str, max_chars: int, overlap: int) -> list[str]:
 def _expand_oversized_units(
     units: list[_AtomicUnit], max_chars: int, overlap: int
 ) -> list[_AtomicUnit]:
-    """Split any unit exceeding *max_chars* into bounded sub-units."""
+    """将超过 *max_chars* 的原子单元切分为定长子单元。"""
     expanded: list[_AtomicUnit] = []
     for unit in units:
         if len(unit.text) <= max_chars:
@@ -341,7 +341,7 @@ def _expand_oversized_units(
 
 
 def _merge_section_path(units: list[_AtomicUnit]) -> str:
-    """Compute a concise citation path for one or more merged atomic units."""
+    """为一个或多个合并后的原子单元生成精炼的引用路径。"""
     if len(units) == 1:
         return units[0].section_path
 
@@ -390,7 +390,7 @@ def chunk_markdown(
     overlap: int = 90,
     scope: str = "public",
 ) -> list[KbChunk]:
-    """Split Markdown into structure-aware chunks preserving headings and Chinese legal articles."""
+    """将 Markdown 按结构切分为保留标题层级与中文法条完整性的知识分块。"""
     if min_chars < 1 or max_chars < min_chars:
         raise ValueError("Require 1 <= min_chars <= max_chars")
     if not markdown_text or not markdown_text.strip():

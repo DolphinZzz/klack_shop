@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate built-in Chinese legal and KlackCraft mall policy PDFs for MinerU ingestion."""
+"""生成用于 MinerU 解析入库的内置中国法律法规及咔嗒造物商城服务规范 PDF 文档。"""
 
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ class PdfDocumentSpec:
 
 
 def register_chinese_fonts() -> tuple[str, str]:
-    """Register a readable embedded Chinese regular/bold font pair for ReportLab."""
+    """为 ReportLab 注册可读的内嵌中文字体（常规体与粗体）。"""
     registered = set(pdfmetrics.getRegisteredFontNames())
     for reg_name, reg_path, reg_idx, bold_name, bold_path, bold_idx in _FONT_CANDIDATES:
         reg_file = Path(reg_path)
@@ -96,7 +96,7 @@ def _escape_xml(text: str) -> str:
 
 
 def _format_article_html(text: str) -> str:
-    """Highlight leading article number (e.g. '第二十五条') while preserving clean text."""
+    """加粗高亮条文起始编号（如“第二十五条”），同时保留正文整洁格式。"""
     escaped = _escape_xml(text)
     if "　" in escaped:
         head, tail = escaped.split("　", 1)
@@ -181,7 +181,7 @@ def _draw_page_footer(canvas, doc) -> None:
 
 
 def render_pdf(doc_spec: PdfDocumentSpec, output_dir: Path, regular_font: str, bold_font: str) -> Path:
-    """Render a single PdfDocumentSpec into *output_dir* and return the generated Path."""
+    """将单个 PdfDocumentSpec 渲染为 PDF 文件并写入 output_dir，返回生成的文件路径。"""
     output_dir.mkdir(parents=True, exist_ok=True)
     out_path = output_dir / doc_spec.filename
     styles = _build_styles(regular_font, bold_font)
@@ -608,7 +608,7 @@ DOCUMENT_SPECS: tuple[PdfDocumentSpec, ...] = (
 
 
 def build_all_pdfs(output_dir: Path = DEFAULT_OUTPUT_DIR) -> list[Path]:
-    """Generate all 4 built-in PDFs into *output_dir* and return their paths."""
+    """在 output_dir 中生成全部 4 份内置知识库 PDF 文档并返回路径列表。"""
     regular_font, bold_font = register_chinese_fonts()
     generated: list[Path] = []
     for spec in DOCUMENT_SPECS:

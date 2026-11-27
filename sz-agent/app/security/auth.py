@@ -10,7 +10,7 @@ from app.config import Settings, get_settings
 
 @dataclass(frozen=True, slots=True)
 class AdminActor:
-    """Authenticated internal admin actor extracted from trusted proxy headers."""
+    """从受信反向代理请求头中提取的已认证内部管理员身份。"""
 
     admin_id: int
     admin_name: str
@@ -39,7 +39,7 @@ def verify_internal_secret(
     x_internal_secret: Annotated[str | None, Header(alias="X-Internal-Secret")] = None,
     settings: Annotated[Settings | None, Depends(get_settings)] = None,
 ) -> None:
-    """Verify the shared X-Internal-Secret header using constant-time comparison."""
+    """使用常量时间比较校验共享请求头 X-Internal-Secret。"""
     resolved_settings = settings if settings is not None else get_settings()
     expected = resolved_settings.agent_internal_secret
     if not expected or not x_internal_secret:
@@ -51,7 +51,7 @@ def verify_internal_secret(
 def get_client_user_id(
     x_user_id: Annotated[str | None, Header(alias="X-User-Id")] = None,
 ) -> int:
-    """Extract and validate a positive integer client user id from X-User-Id."""
+    """从请求头 X-User-Id 中提取并校验正整数客户端用户 ID。"""
     return _parse_positive_int(x_user_id, "X-User-Id")
 
 
@@ -59,7 +59,7 @@ def get_admin_actor(
     x_admin_id: Annotated[str | None, Header(alias="X-Admin-Id")] = None,
     x_admin_name: Annotated[str | None, Header(alias="X-Admin-Name")] = None,
 ) -> AdminActor:
-    """Extract and validate admin id and URL-decoded admin name from proxy headers."""
+    """从代理请求头中提取并校验管理员 ID 及 URL 解码后的管理员名称。"""
     admin_id = _parse_positive_int(x_admin_id, "X-Admin-Id")
     admin_name = urllib.parse.unquote(x_admin_name).strip() if x_admin_name else ""
     return AdminActor(admin_id=admin_id, admin_name=admin_name)

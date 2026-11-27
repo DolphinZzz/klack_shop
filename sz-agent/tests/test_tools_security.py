@@ -289,7 +289,7 @@ async def test_prepare_order_draft_rejects_empty_address_and_active_flash_sale()
     assert res_ok["draft"]["address_id"] == 9
     assert len(res_ok["draft"]["draft_id"]) >= 16
 
-    # Explicit non-default owned address & non-free postage numeric prices
+    # 显式指定名下非默认地址及非包邮数值型运费/价格
     mall_postage = FakeMall(
         False,
         mall_ok.addresses,
@@ -310,7 +310,7 @@ async def test_prepare_order_draft_rejects_empty_address_and_active_flash_sale()
     assert res_postage["draft"]["address_id"] == 12
     assert res_postage["draft"]["receiver_name"] == "李四"
 
-    # Rejects foreign/non-existent address_id, low stock, missing sku, delisted product, bad quantity
+    # 拒绝非本人/不存在的 address_id、库存不足、SKU 不存在、下架商品及非法数量
     res_bad_addr = await tool_postage.coroutine(
         product_id=1, sku_id=11, quantity=1, address_id=9999, runtime=rt
     )
@@ -509,7 +509,7 @@ async def test_kb_tools_filter_categories_and_after_sales_tools_preserve_ground_
     assert res_law_single["ok"] is True
     assert retriever.calls[-1][1] == ["mall_policy"]
 
-    # Order detail and shipment grounding
+    # 订单详情与物流真实状态校验
     class GroundedMall:
         async def get_order_detail(self, user_id: int, order_no: str):
             return {
@@ -565,18 +565,18 @@ async def test_kb_tools_filter_categories_and_after_sales_tools_preserve_ground_
     assert as_res["after_sales"][0]["service_no"] == "AS202611260001"
     assert as_res["after_sales"][0]["apply_amount"] == "399.00"
 
-    # Disallowed KB category is rejected cleanly
+    # 非允许的知识库分类应被安全拒绝
     bad_cat = await after_tools["search_policy_and_law_kb"].coroutine(
         query="轴体选购", category="product_guide"
     )
     assert bad_cat["ok"] is False and bad_cat["found"] is False
 
-    # Missing retriever returns safe empty result without raising
+    # 未配置检索器时返回安全的空结果而不抛出异常
     no_kb_tools = {t.name: t for t in build_shopping_tools(object(), None)}
     res_no_kb = await no_kb_tools["search_presale_kb"].coroutine(query="红轴")
     assert res_no_kb["ok"] is True and res_no_kb["found"] is False
 
-    # Failing retriever must NOT leak raw exception internals to LLM-visible message
+    # 检索器异常时不得向 LLM 可见消息泄露原始内部异常信息
     class BrokenRetriever:
         async def retrieve(self, query: str, categories: list[str] | None = None, top_k: int = 5):
             raise RuntimeError("Milvus connection refused at 10.0.0.42:19530 secret-dsn")

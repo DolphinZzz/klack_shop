@@ -133,7 +133,7 @@ def _build_after_sale_guidance(order: Mapping[str, Any]) -> str | None:
 
 
 def build_after_sales_tools(mall_client: Any, kb_retriever: Any) -> list:
-    """Build the 4 order-tracking, after-sales status, and policy/law RAG tools."""
+    """构建订单查询、物流跟踪、售后进度查询及法规/商城规范 RAG 共 4 个售后工具。"""
 
     @tool
     async def list_my_orders(

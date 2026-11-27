@@ -12,7 +12,7 @@ def get_qwen_embeddings(
     *,
     chunk_size: int = DASHSCOPE_EMBEDDING_MAX_BATCH_SIZE,
 ) -> OpenAIEmbeddings:
-    """Build an OpenAIEmbeddings client targeting DashScope Qwen text-embedding-v4."""
+    """构建指向 DashScope Qwen text-embedding-v4 的 OpenAIEmbeddings 客户端。"""
     cfg = settings or get_settings()
     if not cfg.dashscope_api_key:
         raise ValueError("DASHSCOPE_API_KEY must be configured to create Qwen embeddings")

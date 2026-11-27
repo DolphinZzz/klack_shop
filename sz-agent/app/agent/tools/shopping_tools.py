@@ -95,7 +95,7 @@ def _normalize_product_detail(detail: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def build_shopping_tools(mall_client: Any, kb_retriever: Any) -> list:
-    """Build the 6 pre-sales recommendation and order-draft LangChain tools."""
+    """构建售前商品推荐、参数检索与下单草稿准备共 6 个 LangChain 工具。"""
 
     @tool
     async def list_hot_and_popular_products(

@@ -17,7 +17,7 @@ from langgraph.types import Command
 
 
 class StubChatModel(GenericFakeChatModel):
-    """Deterministic fake ChatModel supporting bind_tools, streaming tool calls, and structured output."""
+    """支持 bind_tools、流式工具调用和结构化输出的确定性模拟聊天模型。"""
 
     structured_outputs: list[Any] = []
 
@@ -75,7 +75,7 @@ class StubChatModel(GenericFakeChatModel):
 
 
 class FakeKbRetriever:
-    """In-memory KB retriever returning deterministic law and policy citations."""
+    """返回确定性法规与政策引用的内存知识库检索器。"""
 
     def __init__(self, hits: list[Any] | None = None) -> None:
         self.calls: list[tuple[str, list[str] | None, int]] = []
@@ -105,7 +105,7 @@ class FakeKbHit:
 
 
 class FakeTicketRepo:
-    """In-memory ticket repository recording create_ticket calls."""
+    """记录 create_ticket 调用的内存工单仓储。"""
 
     def __init__(self) -> None:
         self.created: list[dict[str, Any]] = []
@@ -146,7 +146,7 @@ class FakeTicketRepo:
 
 
 class FakeMallClient:
-    """In-memory mall client implementing product, address, order, and direct-create endpoints."""
+    """实现商品、地址、订单及直接创建订单接口的内存商城客户端。"""
 
     def __init__(self) -> None:
         self.direct_create_calls: list[dict[str, Any]] = []
@@ -458,7 +458,7 @@ async def test_intent_router_routes_all_5_branches_and_low_confidence_to_fallbac
     )
     ctx = _ctx()
 
-    # 1. chitchat
+    # 1. 闲聊分支（chitchat）
     res_chat = await graph.ainvoke(
         {"messages": [HumanMessage(content="你好呀")]},
         context=ctx,
@@ -467,7 +467,7 @@ async def test_intent_router_routes_all_5_branches_and_low_confidence_to_fallbac
     assert res_chat["intent"] == "chitchat"
     assert "咔嗒造物" in res_chat["messages"][-1].content
 
-    # 2. recommend_order (produces recommended_products & product_list card)
+    # 2. 导购下单分支（生成 recommended_products 与 product_list 卡片）
     rec_config = {"configurable": {"thread_id": build_thread_id(777, "s-rec")}}
     res_rec = await graph.ainvoke(
         {"messages": [HumanMessage(content="推荐几款热销机械键盘")]},
@@ -478,7 +478,7 @@ async def test_intent_router_routes_all_5_branches_and_low_confidence_to_fallbac
     assert len(res_rec["recommended_products"]) == 1
     assert res_rec["ui_events"][0]["card_type"] == "product_list"
 
-    # 3. consult_after_sales
+    # 3. 售后咨询分支（consult_after_sales）
     res_as = await graph.ainvoke(
         {"messages": [HumanMessage(content="查一下我的订单状态")]},
         context=ctx,
@@ -487,7 +487,7 @@ async def test_intent_router_routes_all_5_branches_and_low_confidence_to_fallbac
     assert res_as["intent"] == "consult_after_sales"
     assert "ORD_PAID_1" in res_as["messages"][-1].content
 
-    # 4. handoff with concrete issue
+    # 4. 含明确问题描述的转人工分支（handoff）
     res_ho = await graph.ainvoke(
         {"messages": [HumanMessage(content="订单 ORD_PAID_1 一直没发货，转人工催一下")]},
         context=ctx,
@@ -497,7 +497,7 @@ async def test_intent_router_routes_all_5_branches_and_low_confidence_to_fallbac
     assert res_ho["created_ticket"] is not None
     assert res_ho["ui_events"][0]["card_type"] == "ticket_created"
 
-    # 5. explicit fallback
+    # 5. 显式兜底分支（fallback）
     res_fb1 = await graph.ainvoke(
         {"messages": [HumanMessage(content="asdfghjkl???")]},
         context=ctx,
@@ -506,7 +506,7 @@ async def test_intent_router_routes_all_5_branches_and_low_confidence_to_fallbac
     assert res_fb1["intent"] == "fallback"
     assert "人工工单" in res_fb1["messages"][-1].content
 
-    # 6. low confidence (<0.6) forced to fallback even if model guessed recommend_order
+    # 6. 低置信度（<0.6）即使模型预测为 recommend_order 也强制降级到 fallback
     res_fb2 = await graph.ainvoke(
         {"messages": [HumanMessage(content="那个什么东东")]},
         context=ctx,
@@ -516,7 +516,7 @@ async def test_intent_router_routes_all_5_branches_and_low_confidence_to_fallbac
     assert res_fb2["intent_confidence"] == pytest.approx(0.55)
     assert "4 项" in res_fb2["messages"][-1].content
 
-    # 7. Next turn on same thread as recommend_order must reset stale cards & recommended_products
+    # 7. 同一会话线程的下一轮对话必须重置上一轮遗留的卡片与 recommended_products
     res_rec_next = await graph.ainvoke(
         {"messages": [HumanMessage(content="谢谢")]},
         context=ctx,
@@ -567,7 +567,7 @@ async def test_recommend_order_interrupt_confirm_and_cancel():
 
     ctx = _ctx()
 
-    # Case A: confirm with owned address_id=88
+    # 场景 A：使用本人名下 address_id=88 确认下单
     mall_confirm = FakeMallClient()
     graph_confirm = make_graph(mall_confirm)
     cfg_confirm = {"configurable": {"thread_id": build_thread_id(777, "s-confirm")}}
@@ -603,7 +603,7 @@ async def test_recommend_order_interrupt_confirm_and_cancel():
     ]
     assert "/order_payment?orderNo=ORD202611268888" in resumed_confirm["created_order"]["payment_url"]
 
-    # Case B: cancel must NOT call direct_create_order
+    # 场景 B：取消下单时严禁调用 direct_create_order
     mall_cancel = FakeMallClient()
     graph_cancel = make_graph(mall_cancel)
     cfg_cancel = {"configurable": {"thread_id": build_thread_id(777, "s-cancel")}}
@@ -623,7 +623,7 @@ async def test_recommend_order_interrupt_confirm_and_cancel():
     assert resumed_cancel["created_order"] is None
     assert resumed_cancel["ui_events"] == []
 
-    # Case C: non-owned address_id=9999 must be rejected and NOT call direct_create_order
+    # 场景 C：非本人名下 address_id=9999 必须被拒绝且不得调用 direct_create_order
     mall_bad_addr = FakeMallClient()
     graph_bad_addr = make_graph(mall_bad_addr)
     cfg_bad_addr = {"configurable": {"thread_id": build_thread_id(777, "s-bad-addr")}}
@@ -643,7 +643,7 @@ async def test_recommend_order_interrupt_confirm_and_cancel():
     assert resumed_bad["created_order"] is None
     assert "地址" in resumed_bad["messages"][-1].content
 
-    # Case D: confirm without explicit address_id falls back to draft["address_id"] (default 9)
+    # 场景 D：确认下单未显式传入 address_id 时回退使用草稿中的默认地址（9）
     mall_default_addr = FakeMallClient()
     graph_default_addr = make_graph(mall_default_addr)
     cfg_default_addr = {"configurable": {"thread_id": build_thread_id(777, "s-default-addr")}}
@@ -719,7 +719,7 @@ async def test_new_message_during_interrupt_auto_cancels_draft():
     ctx = _ctx()
     cfg = {"configurable": {"thread_id": build_thread_id(777, "s-antistuck")}}
 
-    # Turn 1 suspends at confirm_order_interrupt
+    # 第 1 轮在 confirm_order_interrupt 节点挂起等待确认
     suspended = await graph.ainvoke(
         {"messages": [HumanMessage(content="帮我下单 K80 红轴")]},
         context=ctx,
@@ -729,7 +729,7 @@ async def test_new_message_during_interrupt_auto_cancels_draft():
     snapshot = await graph.aget_state(cfg)
     assert snapshot.interrupts
 
-    # User sends new text instead of clicking confirm/cancel -> caller auto-cancels pending interrupt first
+    # 用户未点击确认/取消而是发送新消息 -> 调用方先自动取消待处理中断
     cancelled = await graph.ainvoke(
         Command(resume={"action": "cancel", "reason": "superseded_by_new_message"}),
         context=ctx,
@@ -740,7 +740,7 @@ async def test_new_message_during_interrupt_auto_cancels_draft():
     snapshot_after_cancel = await graph.aget_state(cfg)
     assert not snapshot_after_cancel.interrupts
 
-    # Then new user message routes cleanly to after-sales without touching direct_create_order
+    # 随后新消息正常路由至售后分支，且不触发 direct_create_order
     follow_up = await graph.ainvoke(
         {"messages": [HumanMessage(content="算了，帮我查下我之前的订单")]},
         context=ctx,
@@ -800,7 +800,7 @@ async def test_handoff_clarifies_empty_first_turn_and_creates_ticket_with_contex
     )
     ctx = _ctx()
 
-    # 1. Bare first turn "转人工" -> asks 1 clarifying sentence, NO ticket created
+    # 1. 首轮仅发送“转人工”无上下文 -> 追问一句澄清问题，不创建工单
     cfg1 = {"configurable": {"thread_id": build_thread_id(777, "s-handoff-1")}}
     res1 = await graph.ainvoke(
         {"messages": [HumanMessage(content="转人工")]},
@@ -813,7 +813,7 @@ async def test_handoff_clarifies_empty_first_turn_and_creates_ticket_with_contex
     assert len(ticket_repo.created) == 0
     assert "直接提交空背景工单" in res1["messages"][-1].content
 
-    # 2. Turn 2 on same thread adds order/issue context -> creates OPEN ticket
+    # 2. 同一线程第 2 轮补充订单与问题背景 -> 创建 OPEN 状态工单
     res2 = await graph.ainvoke(
         {"messages": [HumanMessage(content="订单 ORD900 一直没发货，帮我处理")]},
         context=ctx,
@@ -826,7 +826,7 @@ async def test_handoff_clarifies_empty_first_turn_and_creates_ticket_with_contex
     assert len(ticket_repo.created) == 1
     assert ticket_repo.created[0]["user_id"] == 777
 
-    # 3. Single turn with explicit issue & order -> immediately creates OPEN ticket
+    # 3. 单轮直接提供明确问题与订单号 -> 立即创建 OPEN 状态工单
     cfg2 = {"configurable": {"thread_id": build_thread_id(777, "s-handoff-2")}}
     res3 = await graph.ainvoke(
         {"messages": [HumanMessage(content="帮我转人工，订单 ORD901 已经付款但还没发货我要退款")]},
@@ -837,7 +837,7 @@ async def test_handoff_clarifies_empty_first_turn_and_creates_ticket_with_contex
     assert res3["created_ticket"]["related_order_no"] == "ORD901"
     assert len(ticket_repo.created) == 2
 
-    # 4. Bare first turn with explicit force_ticket=True -> bypasses clarification and creates ticket
+    # 4. 首轮无背景但显式传入 force_ticket=True -> 跳过追问直接创建工单
     cfg3 = {"configurable": {"thread_id": build_thread_id(777, "s-handoff-3")}}
     res4 = await graph.ainvoke(
         {"messages": [HumanMessage(content="转人工")], "force_ticket": True},
@@ -1096,7 +1096,7 @@ async def test_structured_output_none_and_type_error_fall_back_gracefully():
     from app.agent.state import RouterDecision
 
     class NoneStructuredModel(GenericFakeChatModel):
-        def with_structured_output(self, schema):  # intentionally no method= kwarg
+        def with_structured_output(self, schema):  # 故意不接受 method= 关键字参数
             async def _ainvoke(messages, config=None):
                 return None
 
@@ -1141,7 +1141,7 @@ async def test_structured_output_none_and_type_error_fall_back_gracefully():
     )
     ctx = _ctx()
 
-    # intent_router receiving None structured output falls back safely to fallback_node
+    # intent_router 收到 None 结构化输出时安全降级至 fallback_node
     res_fallback = await graph.ainvoke(
         {"messages": [HumanMessage(content="嗯？")]},
         context=ctx,
@@ -1151,7 +1151,7 @@ async def test_structured_output_none_and_type_error_fall_back_gracefully():
     assert res_fallback["intent_confidence"] == 0.0
     assert "4 项" in res_fallback["messages"][-1].content
 
-    # handoff_node receiving None structured output still creates OPEN ticket with fallback summary
+    # handoff_node 收到 None 结构化输出时仍使用兜底摘要创建 OPEN 工单
     res_handoff = await graph.ainvoke(
         {"messages": [HumanMessage(content="我的订单一直没收到货")], "force_ticket": True},
         context=ctx,

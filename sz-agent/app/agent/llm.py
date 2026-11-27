@@ -46,7 +46,7 @@ def build_chat_deepseek(
     streaming: bool,
     disable_streaming: bool = False,
 ) -> ChatDeepSeek:
-    """Instantiate a ChatDeepSeek model configured from application Settings."""
+    """根据应用 `Settings` 配置实例化 `ChatDeepSeek` 模型。"""
     return ChatDeepSeek(
         model=settings.deepseek_model,
         api_key=settings.deepseek_api_key,
@@ -58,7 +58,7 @@ def build_chat_deepseek(
 
 
 def create_default_llm_factory(settings: Settings | None = None) -> LlmFactory:
-    """Return a role-keyed factory producing configured ChatDeepSeek instances."""
+    """返回按角色（`LlmRole`）创建已配置 `ChatDeepSeek` 实例的工厂函数。"""
     resolved = settings or get_settings()
 
     def _factory(role: LlmRole) -> BaseChatModel:
@@ -76,7 +76,7 @@ def create_default_llm_factory(settings: Settings | None = None) -> LlmFactory:
 
 
 def coerce_message_text(content: Any) -> str:
-    """Extract plain text from string or structured-block LangChain message content."""
+    """从字符串或结构化内容块的 LangChain 消息内容中提取纯文本。"""
     if isinstance(content, str):
         return content
     if isinstance(content, list):
@@ -97,7 +97,7 @@ def extract_conversation_messages(
     *,
     max_turns: int = 6,
 ) -> list[BaseMessage]:
-    """Extract clean recent Human/AI dialogue turns without orphaned ToolMessages."""
+    """提取近期干净的 Human/AI 对话轮次，过滤孤立的 `ToolMessage`。"""
     cleaned: list[BaseMessage] = []
     for msg in messages:
         if isinstance(msg, HumanMessage):
@@ -131,7 +131,7 @@ async def invoke_structured_output(
     schema: type[SchemaT],
     messages: Sequence[BaseMessage],
 ) -> SchemaT | None:
-    """Invoke *model* with Pydantic structured output, returning None if unparseable."""
+    """以 Pydantic 结构化输出方式调用 `model`，无法解析时返回 `None`。"""
     msg_list = list(messages)
     structured = None
     try:

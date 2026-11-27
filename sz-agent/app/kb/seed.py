@@ -47,7 +47,7 @@ _KNOWN_DOCUMENT_META: tuple[tuple[str, str, str], ...] = (
 
 @dataclass(slots=True)
 class SeedReport:
-    """Summary counters for a knowledge base directory seed run."""
+    """知识库目录初始化导入运行的统计计数汇总。"""
 
     total_files: int = 0
     created: int = 0
@@ -57,7 +57,7 @@ class SeedReport:
 
 
 def infer_document_metadata(pdf_path: Path) -> tuple[str, str]:
-    """Infer `(title, category)` from known built-in PDF names or filename hints."""
+    """根据内置已知 PDF 名称或文件名特征推断 `(title, category)`。"""
     stem_lower = pdf_path.stem.lower()
     for pattern, title, category in _KNOWN_DOCUMENT_META:
         if pattern in stem_lower:
@@ -83,8 +83,9 @@ async def seed_knowledge_docs(
     docs_dir: Path | None = None,
     mineru_mode: str = "cloud_api",
     commit_per_doc: bool = False,
+    use_cached_markdown: bool = False,
 ) -> SeedReport:
-    """Idempotently scan *docs_dir* for PDFs and ingest new or non-indexed documents."""
+    """幂等扫描 *docs_dir* 下的 PDF 文件，并对新增或未完成索引的文档执行入库。"""
     target_dir = docs_dir or DEFAULT_DOCS_DIR
     report = SeedReport()
     if not target_dir.exists():
@@ -110,7 +111,10 @@ async def seed_knowledge_docs(
                 if existing.status == "INDEXED":
                     report.skipped += 1
                     continue
-                result = await ingestion_service.ingest_document(existing.id)
+                result = await ingestion_service.ingest_document(
+                    existing.id,
+                    use_cached_markdown=use_cached_markdown,
+                )
                 if commit_per_doc:
                     await session.commit()
                 if result.status == "INDEXED":
@@ -147,7 +151,7 @@ async def seed_knowledge_docs(
 
 
 async def run_seed_cli(docs_dir: Path | None = None) -> SeedReport:
-    """CLI entrypoint wiring Settings, PostgreSQL, MinerU, Qwen embeddings, and Milvus."""
+    """串联 Settings、PostgreSQL、MinerU、Qwen 向量模型与 Milvus 的命令行入口。"""
     settings = get_settings()
     parser = MinerUParser.from_settings(settings)
     embeddings = get_qwen_embeddings(settings)
@@ -170,6 +174,7 @@ async def run_seed_cli(docs_dir: Path | None = None) -> SeedReport:
                 docs_dir=docs_dir,
                 mineru_mode=settings.mineru_mode,
                 commit_per_doc=True,
+                use_cached_markdown=True,
             )
     finally:
         await dispose_engine()

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class KbIngestionService:
-    """Orchestrates PDF parsing, markdown caching, chunking, embedding, and Milvus sync."""
+    """编排 PDF 解析、Markdown 缓存、分块、向量化及 Milvus 同步流程。"""
 
     def __init__(
         self,
@@ -51,7 +51,7 @@ class KbIngestionService:
         *,
         use_cached_markdown: bool = False,
     ) -> KbDocument:
-        """Parse, chunk, embed, and atomically replace Milvus vectors for *doc_id*."""
+        """对 *doc_id* 执行解析、分块、向量化，并替换同步 Milvus 中的对应向量。"""
         doc = await self.repo.get_document(doc_id)
         if doc is None:
             raise LookupError(f"KB document {doc_id} not found")
@@ -60,8 +60,13 @@ class KbIngestionService:
 
         try:
             cache_path = self._markdown_cache_path(doc.id)
-            if use_cached_markdown and cache_path is not None and cache_path.exists():
-                markdown_text = cache_path.read_text(encoding="utf-8")
+            cached_text = (
+                cache_path.read_text(encoding="utf-8")
+                if use_cached_markdown and cache_path is not None and cache_path.exists()
+                else ""
+            )
+            if cached_text.strip():
+                markdown_text = cached_text
             else:
                 if not doc.file_path:
                     raise FileNotFoundError(f"Document {doc.id} has no file_path configured")
@@ -119,7 +124,7 @@ class KbIngestionService:
             return failed
 
     async def delete_document(self, doc_id: UUID | str) -> bool:
-        """Remove Milvus vectors first, then cached markdown and the PostgreSQL record."""
+        """先删除 Milvus 向量，再清理本地 Markdown 缓存及 PostgreSQL 记录。"""
         doc = await self.repo.get_document(doc_id)
         if doc is None:
             return False

@@ -41,7 +41,7 @@ router = APIRouter(
 
 @router.get("/ping")
 def client_ping(user_id: int = Depends(get_client_user_id)) -> dict[str, int | str]:
-    """Health/auth verification route for internal client requests."""
+    """内部用户端请求的健康检查与鉴权校验路由。"""
     return {"status": "ok", "user_id": user_id}
 
 
@@ -52,7 +52,7 @@ async def list_sessions(
     user_id: int = Depends(get_client_user_id),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> SessionListResponse:
-    """List customer service sessions owned by the authenticated user."""
+    """查询当前已认证用户拥有的客服会话列表。"""
     normalized_status = normalize_optional_filter(
         session_status,
         VALID_SESSION_STATUSES,
@@ -75,7 +75,7 @@ async def create_session(
     user_id: int = Depends(get_client_user_id),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> SessionResponse:
-    """Create a new ACTIVE customer service session owned by the authenticated user."""
+    """为当前已认证用户创建新的 ACTIVE 客服会话。"""
     title = payload.title if payload is not None else None
     created = await SessionRepository(db).create_session(user_id=user_id, title=title)
     return SessionResponse.from_orm_model(created)
@@ -87,7 +87,7 @@ async def list_session_messages(
     user_id: int = Depends(get_client_user_id),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> SessionMessagesResponse:
-    """Fetch ordered messages and active interrupt state for a user-owned session."""
+    """获取用户所属会话的有序历史消息及当前待处理的中断状态。"""
     sid = parse_uuid_or_404(session_id, "会话不存在或无权访问")
     repo = SessionRepository(db)
     cs_session = await repo.get_session_for_user(sid, user_id)
@@ -122,7 +122,7 @@ async def chat_stream(
     user_id: int = Depends(get_client_user_id),
     chat_service: ChatService = Depends(resolve_chat_service),
 ) -> StreamingResponse:
-    """Stream SSE events for a new customer service turn on a user-owned session."""
+    """在用户所属会话上发起新一轮客服对话并以 SSE 流式推送事件。"""
     sid = parse_uuid_or_404(session_id, "会话不存在或无权访问")
     trace_id = (x_request_id or "").strip() or uuid.uuid4().hex
     try:
@@ -152,7 +152,7 @@ async def resume_stream(
     user_id: int = Depends(get_client_user_id),
     chat_service: ChatService = Depends(resolve_chat_service),
 ) -> StreamingResponse:
-    """Resume a pending order confirmation interrupt and stream resulting SSE events."""
+    """恢复待确认的下单中断流程并以 SSE 流式推送后续事件。"""
     sid = parse_uuid_or_404(session_id, "会话不存在或无权访问")
     trace_id = (x_request_id or "").strip() or uuid.uuid4().hex
     try:
@@ -183,7 +183,7 @@ async def list_my_tickets(
     user_id: int = Depends(get_client_user_id),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> TicketPageResponse:
-    """List support tickets owned by the authenticated user with optional status filter."""
+    """按可选状态筛选并分页查询当前已认证用户的客服工单列表。"""
     normalized_status = normalize_optional_filter(
         ticket_status,
         VALID_TICKET_STATUSES,
@@ -214,7 +214,7 @@ async def get_my_ticket_detail(
     user_id: int = Depends(get_client_user_id),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> TicketDetailResponse:
-    """Return ticket details and reply timeline for a ticket owned by the authenticated user."""
+    """返回当前已认证用户所属工单的详情与回复时间线。"""
     tid = parse_uuid_or_404(ticket_id, "工单不存在或无权访问")
     ticket = await TicketRepository(db).get_ticket_detail_for_user(tid, user_id)
     if ticket is None:
@@ -232,7 +232,7 @@ async def reply_my_ticket(
     user_id: int = Depends(get_client_user_id),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> TicketDetailResponse:
-    """Append a user follow-up reply and reopen an OPEN/REPLIED ticket."""
+    """追加用户追问回复并将 OPEN/REPLIED 工单重新置为待处理状态。"""
     tid = parse_uuid_or_404(ticket_id, "工单不存在或无权访问")
     try:
         updated = await TicketRepository(db).add_user_followup(

@@ -6,7 +6,7 @@ from app.agent.prompts import CHITCHAT_SYSTEM_PROMPT
 
 
 def build_chitchat_node(*, llm_factory: LlmFactory):
-    """Build the KlackCraft peripheral/shopping advisor chitchat node."""
+    """构建咔嗒造物（KlackCraft）外设与好物顾问闲聊节点。"""
     return build_conversational_node(
         llm_factory=llm_factory,
         role="chitchat",

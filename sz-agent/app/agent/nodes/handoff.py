@@ -97,7 +97,7 @@ def _serialize_ticket(ticket: Any) -> dict[str, Any]:
 
 
 def build_handoff_node(*, llm_factory: LlmFactory, ticket_repo_factory: Any):
-    """Build the human-handoff node with anti-empty-ticket clarification and PG ticket creation."""
+    """构建支持防空工单追问澄清与 PostgreSQL 工单创建的转人工节点。"""
 
     async def handoff_node(
         state: CustomerServiceState,

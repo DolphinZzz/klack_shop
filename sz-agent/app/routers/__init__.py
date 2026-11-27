@@ -22,19 +22,19 @@ SSE_RESPONSE_HEADERS = {
 
 
 def resolve_settings(request: Request) -> Settings:
-    """Resolve app-scoped Settings override or cached environment Settings."""
+    """解析应用级 `app.state` 中的 Settings 覆盖项，未设置时返回环境变量缓存配置。"""
     override = getattr(request.app.state, "settings", None)
     return override if isinstance(override, Settings) else get_settings()
 
 
 def resolve_session_factory(request: Request):
-    """Resolve app-scoped async_sessionmaker override or default PG session factory."""
+    """解析应用级 `async_sessionmaker` 覆盖项，未设置时返回默认 PostgreSQL 会话工厂。"""
     override = getattr(request.app.state, "session_factory", None)
     return override if override is not None else get_session_factory()
 
 
 async def get_request_db_session(request: Request) -> AsyncIterator[AsyncSession]:
-    """Yield an AsyncSession bound to app.state.session_factory with auto commit/rollback."""
+    """生成绑定至 `app.state.session_factory` 的 AsyncSession，并自动处理提交与异常回滚。"""
     factory = resolve_session_factory(request)
     async with factory() as session:
         try:
@@ -46,7 +46,7 @@ async def get_request_db_session(request: Request) -> AsyncIterator[AsyncSession
 
 
 def resolve_chat_service(request: Request) -> ChatService:
-    """Return the configured ChatService from app.state or raise 503 if uninitialized."""
+    """从 `app.state` 获取已配置的 ChatService，尚未初始化时抛出 503 异常。"""
     service = getattr(request.app.state, "chat_service", None)
     if service is None:
         raise HTTPException(
@@ -62,7 +62,7 @@ def build_kb_ingestion_service(
     *,
     require_embeddings: bool = True,
 ) -> KbIngestionService:
-    """Construct a KbIngestionService using app.state overrides or configured defaults."""
+    """优先使用 `app.state` 覆盖项或默认配置构建 KbIngestionService。"""
     app = request_or_app.app if isinstance(request_or_app, Request) else request_or_app
     settings = getattr(app.state, "settings", None)
     if not isinstance(settings, Settings):
@@ -92,7 +92,7 @@ def normalize_optional_filter(
     field_name: str = "filter",
     uppercase: bool = False,
 ) -> str | None:
-    """Normalize blank strings to None and validate against allowed values if supplied."""
+    """将空白字符串规范化为 None，并在给定允许集合时校验取值合法性。"""
     if value is None:
         return None
     cleaned = value.strip()
@@ -109,7 +109,7 @@ def normalize_optional_filter(
 
 
 def parse_uuid_or_404(raw_id: str, detail: str) -> uuid.UUID:
-    """Validate a string path parameter as a UUID or raise HTTP 404."""
+    """校验路径参数字符串是否为合法 UUID，非法时抛出 HTTP 404 异常。"""
     parsed = coerce_uuid(raw_id)
     if parsed is None:
         raise HTTPException(

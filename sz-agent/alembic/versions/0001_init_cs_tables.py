@@ -1,8 +1,8 @@
-"""Initialize 5 PostgreSQL customer service tables.
+"""初始化 5 张 PostgreSQL 客服业务数据表。
 
-Revision ID: 0001_init_cs_tables
-Revises:
-Create Date: 2026-11-26 00:00:00
+修订版本 ID：0001_init_cs_tables
+前置版本：
+创建时间：2026-11-26 00:00:00
 """
 
 from typing import Sequence, Union

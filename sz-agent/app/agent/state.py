@@ -33,7 +33,7 @@ VALID_TICKET_CATEGORIES: frozenset[str] = frozenset(
 
 
 class OrderDraft(TypedDict):
-    """Structured pending order draft presented to the user via LangGraph interrupt."""
+    """通过 LangGraph `interrupt` 向用户展示的结构化待确认订单草稿。"""
 
     draft_id: str
     product_id: int
@@ -53,7 +53,7 @@ class OrderDraft(TypedDict):
 
 
 class RouterDecision(BaseModel):
-    """Structured intent classification output produced by intent_router."""
+    """由 `intent_router` 生成的结构化意图分类结果。"""
 
     intent: IntentType = "fallback"
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -90,7 +90,7 @@ class RouterDecision(BaseModel):
 
 
 class HandoffSummary(BaseModel):
-    """Structured support ticket summary extracted by handoff_node."""
+    """由 `handoff_node` 提取的结构化人工客服工单摘要。"""
 
     category: TicketCategoryType = "other"
     title: str = Field(default="人工客服工单", min_length=1, max_length=128)
@@ -131,7 +131,7 @@ class HandoffSummary(BaseModel):
 
 
 class CustomerServiceState(TypedDict):
-    """Root LangGraph state shared across the main router, nodes, and subgraphs."""
+    """主路由、各节点与子图共享的根级 LangGraph 状态。"""
 
     messages: Annotated[list[AnyMessage], add_messages]
     intent: IntentType | None
@@ -147,7 +147,7 @@ class CustomerServiceState(TypedDict):
 
 
 def empty_turn_outputs() -> dict[str, Any]:
-    """Return clean per-turn output defaults so prior turn cards never leak forward."""
+    """返回干净的单轮输出默认值，防止上一轮卡片数据泄漏到当前轮。"""
     return {
         "recommended_products": [],
         "created_order": None,

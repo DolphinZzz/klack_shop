@@ -6,7 +6,7 @@ from app.agent.prompts import FALLBACK_SYSTEM_PROMPT
 
 
 def build_fallback_node(*, llm_factory: LlmFactory):
-    """Build the fallback clarification node listing the 4 core customer service capabilities."""
+    """构建列出 4 项核心客服能力的兜底澄清节点。"""
     return build_conversational_node(
         llm_factory=llm_factory,
         role="fallback",

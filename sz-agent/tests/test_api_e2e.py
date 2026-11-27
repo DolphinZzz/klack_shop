@@ -21,7 +21,7 @@ from starlette.requests import Request
 from app.agent.state import HandoffSummary, RouterDecision
 from app.config import Settings
 from app.db.base import Base
-import app.db.models  # noqa: F401 - register ORM models
+import app.db.models  # noqa: F401 - 注册 ORM 模型
 from app.db.models import CsMessage, CsSession, KbDocument
 from tests.test_graph_flows import (
     FakeKbHit,
@@ -36,7 +36,7 @@ _UNSET = object()
 
 
 class SlowStreamingChatModel(GenericFakeChatModel):
-    """Fake streaming chat model with controllable delay between chunks for heartbeat/disconnect tests."""
+    """分块间延迟可控的模拟流式聊天模型，用于心跳与断连测试。"""
 
     first_chunk_sent: asyncio.Event | None = None
     release_gate: asyncio.Event | None = None
@@ -80,7 +80,7 @@ class SlowStreamingChatModel(GenericFakeChatModel):
 
 
 class FakeMilvusStore:
-    """In-memory Milvus vector store stub recording upserts and deletions."""
+    """记录写入与删除操作的内存 Milvus 向量库桩。"""
 
     def __init__(self) -> None:
         self.ensure_calls = 0
@@ -99,7 +99,7 @@ class FakeMilvusStore:
 
 
 class FakeKbParser:
-    """Deterministic PDF-to-Markdown parser stub."""
+    """确定性的 PDF 转 Markdown 解析器桩。"""
 
     def __init__(self, markdown: str = "# 售后服务规范\n\n## 第一条\n现货 48 小时内发货，七天无理由退货需保持包装完好。") -> None:
         self.markdown = markdown
@@ -112,7 +112,7 @@ class FakeKbParser:
 
 
 class FakeEmbeddings:
-    """Deterministic 1024-dim embedding stub."""
+    """确定性的 1024 维向量嵌入桩。"""
 
     def __init__(self) -> None:
         self.calls: list[list[str]] = []
@@ -141,7 +141,7 @@ def _admin_headers(admin_id: int = 1, admin_name: str = "%E5%AE%A2%E6%9C%8D%E4%B
 
 
 def _parse_sse_text(raw: str) -> list[dict[str, Any]]:
-    """Parse raw SSE wire text into ordered event dicts and comment records."""
+    """将原始 SSE 报文解析为有序的事件字典与注释记录列表。"""
     events: list[dict[str, Any]] = []
     event_name: str | None = None
     data_lines: list[str] = []
@@ -181,7 +181,7 @@ def _parse_sse_text(raw: str) -> list[dict[str, Any]]:
 
 @pytest_asyncio.fixture
 async def e2e_env(tmp_path: Path):
-    """Build an isolated SQLite-backed FastAPI app environment with injected test doubles."""
+    """构建注入测试替身并基于隔离 SQLite 的 FastAPI 应用测试环境。"""
     db_file = tmp_path / "cs_e2e.db"
     engine = create_async_engine(f"sqlite+aiosqlite:///{db_file}", echo=False)
 
@@ -295,7 +295,7 @@ async def test_cross_user_access_forbidden(e2e_env):
         assert create_res.status_code == 200
         sid = create_res.json()["id"]
 
-        # Create a ticket owned by user 101 via handoff stream
+        # 通过转人工流式对话为用户 101 创建工单
         stream_res = await client.post(
             f"/internal/cs/client/sessions/{sid}/chat/stream",
             headers=_client_headers(101),
@@ -309,7 +309,7 @@ async def test_cross_user_access_forbidden(e2e_env):
         assert len(ticket_cards) == 1
         tid = ticket_cards[0]["payload"]["id"]
 
-        # User B (202) attempts cross-user access on User A's session & ticket -> 403 or 404
+        # 用户 B（202）尝试越权访问用户 A 的会话与工单 -> 返回 403 或 404
         res_msgs = await client.get(
             f"/internal/cs/client/sessions/{sid}/messages",
             headers=_client_headers(202),
@@ -343,7 +343,7 @@ async def test_cross_user_access_forbidden(e2e_env):
         )
         assert res_followup.status_code in (403, 404)
 
-        # User B's lists remain isolated
+        # 用户 B 的会话与工单列表保持隔离为空
         list_s_b = await client.get("/internal/cs/client/sessions", headers=_client_headers(202))
         assert list_s_b.status_code == 200 and list_s_b.json()["items"] == []
         list_t_b = await client.get("/internal/cs/client/tickets", headers=_client_headers(202))
@@ -408,7 +408,7 @@ async def test_chat_stream_emits_meta_token_card_interrupt_done_and_persists_db(
         assert token_deltas
         full_tokens = "".join(token_deltas)
         assert "K80" in full_tokens and "下单确认卡片" in full_tokens
-        # Structured router / tool-call JSON fragments must not leak into token events
+        # 结构化路由决策与工具调用的 JSON 片段不得泄露到 token 事件中
         assert "recommend_order" not in full_tokens
         assert "prepare_order_draft" not in full_tokens
 
@@ -427,7 +427,7 @@ async def test_chat_stream_emits_meta_token_card_interrupt_done_and_persists_db(
         assert events[-1]["data"] == {"message_id": msg_id, "finish_reason": "interrupted"}
         assert mall.direct_create_calls == []
 
-        # Verify DB persistence & history replay
+        # 验证数据库持久化与历史消息回放
         hist_resp = await client.get(
             f"/internal/cs/client/sessions/{sid}/messages",
             headers=_client_headers(777),
@@ -444,7 +444,7 @@ async def test_chat_stream_emits_meta_token_card_interrupt_done_and_persists_db(
         assert hist["messages"][1]["cards"][0]["card_type"] == "product_list"
         assert hist["messages"][1]["interrupt_payload"]["payload"]["draft_id"] == draft_id
 
-        # Resume with confirm + addressId (camelCase accepted) -> creates formal order
+        # 携带 confirm 与 addressId（兼容驼峰命名）恢复执行 -> 创建正式订单
         resume_resp = await client.post(
             f"/internal/cs/client/sessions/{sid}/resume/stream",
             headers=_client_headers(777),
@@ -552,7 +552,7 @@ async def test_chat_stream_auto_cancels_pending_interrupt(e2e_env):
     ) as client:
         sid = (await client.post("/internal/cs/client/sessions", headers=_client_headers(777))).json()["id"]
 
-        # Turn 1 creates pending order interrupt
+        # 第 1 轮生成待确认的下单中断
         r1 = await client.post(
             f"/internal/cs/client/sessions/{sid}/chat/stream",
             headers=_client_headers(777),
@@ -562,7 +562,7 @@ async def test_chat_stream_auto_cancels_pending_interrupt(e2e_env):
         e1 = _parse_sse_text(r1.text)
         assert e1[-1]["data"]["finish_reason"] == "interrupted"
 
-        # Turn 2 sends free text (must auto-cancel old interrupt and NEVER confirm order)
+        # 第 2 轮直接发送自由文本（必须自动取消旧中断，严禁误确认下单）
         r2 = await client.post(
             f"/internal/cs/client/sessions/{sid}/chat/stream",
             headers=_client_headers(777),
@@ -640,7 +640,7 @@ async def test_admin_reply_updates_session_and_user_followup_reopens_ticket(e2e_
         tid = ticket_card["id"]
         ticket_no = ticket_card["ticket_no"]
 
-        # Admin lists & inspects ticket detail with linked session replay
+        # 管理员查询工单列表并查看含关联会话回放的工单详情
         admin_list = await client.get(
             "/internal/cs/admin/tickets",
             headers=_admin_headers(),
@@ -660,7 +660,7 @@ async def test_admin_reply_updates_session_and_user_followup_reopens_ticket(e2e_
         assert len(detail_json["session_messages"]) >= 2
         assert detail_json["session_messages"][0]["role"] == "user"
 
-        # Admin replies without closing
+        # 管理员回复工单但不关闭
         reply_res = await client.post(
             f"/internal/cs/admin/tickets/{tid}/reply",
             headers=_admin_headers(admin_id=9, admin_name="%E5%AE%A2%E6%9C%8D%E5%B0%8F%E5%8D%A1"),
@@ -670,7 +670,7 @@ async def test_admin_reply_updates_session_and_user_followup_reopens_ticket(e2e_
         assert reply_res.json()["status"] == "REPLIED"
         assert reply_res.json()["replies"][0]["sender_name"] == "客服小卡"
 
-        # User queries original session messages and sees system sync summary
+        # 用户查询原会话消息，可见系统同步的工单回复摘要
         user_msgs = await client.get(
             f"/internal/cs/client/sessions/{sid}/messages",
             headers=_client_headers(501),
@@ -684,7 +684,7 @@ async def test_admin_reply_updates_session_and_user_followup_reopens_ticket(e2e_
             for m in msgs_list
         )
 
-        # User follows up -> ticket status reopens to OPEN
+        # 用户追问后，工单状态重新变为 OPEN
         followup_res = await client.post(
             f"/internal/cs/client/tickets/{tid}/replies",
             headers=_client_headers(501),
@@ -694,7 +694,7 @@ async def test_admin_reply_updates_session_and_user_followup_reopens_ticket(e2e_
         assert followup_res.json()["status"] == "OPEN"
         assert [r["sender_type"] for r in followup_res.json()["replies"]] == ["ADMIN", "USER"]
 
-        # Admin closes ticket -> user followup afterwards is rejected
+        # 管理员关闭工单后，用户的后续追问应被拒绝
         close_res = await client.post(
             f"/internal/cs/admin/tickets/{tid}/close",
             headers=_admin_headers(),
@@ -736,7 +736,7 @@ async def test_kb_upload_and_delete_lifecycle(e2e_env):
         assert Path(uploaded["file_path"]).exists()
         assert Path(uploaded["file_path"]).is_relative_to(env["kb_dir"].resolve())
 
-        # Background task finishes ingestion -> INDEXED + chunks in Milvus
+        # 后台任务完成入库 -> 状态变为 INDEXED 且分块写入 Milvus
         list_res = await client.get(
             "/internal/cs/admin/kb/documents",
             headers=_admin_headers(),
@@ -751,7 +751,7 @@ async def test_kb_upload_and_delete_lifecycle(e2e_env):
         assert len(parser.parsed_paths) == 1
         assert len(store.upserted) == 1
 
-        # Duplicate upload with identical SHA-256 must be deduplicated cleanly
+        # 上传相同 SHA-256 的文件应被幂等去重拦截
         dup_res = await client.post(
             "/internal/cs/admin/kb/documents/upload",
             headers=_admin_headers(),
@@ -761,7 +761,7 @@ async def test_kb_upload_and_delete_lifecycle(e2e_env):
         assert dup_res.status_code == 409
         assert len(parser.parsed_paths) == 1
 
-        # Reindex triggers background re-ingestion
+        # 重建索引接口触发后台重新解析入库
         reindex_res = await client.post(
             f"/internal/cs/admin/kb/documents/{doc_id}/reindex",
             headers=_admin_headers(),
@@ -769,7 +769,7 @@ async def test_kb_upload_and_delete_lifecycle(e2e_env):
         assert reindex_res.status_code == 200
         assert len(parser.parsed_paths) == 2
 
-        # Delete removes Milvus vectors, PG row, cached markdown, and local stored PDF
+        # 删除文档会同步清理 Milvus 向量、数据库记录、缓存 Markdown 及本地 PDF 文件
         stored_pdf = Path(uploaded["file_path"])
         del_res = await client.delete(
             f"/internal/cs/admin/kb/documents/{doc_id}",
@@ -1076,7 +1076,7 @@ async def test_resume_stream_cancel_and_409_without_pending_interrupt(e2e_env):
             await client.post("/internal/cs/client/sessions", headers=_client_headers(701))
         ).json()["id"]
 
-        # Calling /resume/stream before any interrupt -> 409 Conflict
+        # 无待处理中断时调用 /resume/stream -> 返回 409 冲突
         no_int_res = await client.post(
             f"/internal/cs/client/sessions/{sid}/resume/stream",
             headers=_client_headers(701),
@@ -1084,7 +1084,7 @@ async def test_resume_stream_cancel_and_409_without_pending_interrupt(e2e_env):
         )
         assert no_int_res.status_code == 409
 
-        # Trigger pending order_confirm interrupt
+        # 触发待确认的 order_confirm 中断
         chat_res = await client.post(
             f"/internal/cs/client/sessions/{sid}/chat/stream",
             headers=_client_headers(701),
@@ -1093,7 +1093,7 @@ async def test_resume_stream_cancel_and_409_without_pending_interrupt(e2e_env):
         assert chat_res.status_code == 200
         assert _parse_sse_text(chat_res.text)[-1]["data"]["finish_reason"] == "interrupted"
 
-        # Explicit user cancel via /resume/stream
+        # 用户通过 /resume/stream 显式取消下单
         cancel_res = await client.post(
             f"/internal/cs/client/sessions/{sid}/resume/stream",
             headers=_client_headers(701),
@@ -1108,7 +1108,7 @@ async def test_resume_stream_cancel_and_409_without_pending_interrupt(e2e_env):
         assert cancel_events[-1]["data"]["finish_reason"] == "stop"
         assert mall.direct_create_calls == []
 
-        # Subsequent /resume/stream after cancel -> 409 Conflict again
+        # 取消后再次调用 /resume/stream -> 再次返回 409 冲突
         second_res = await client.post(
             f"/internal/cs/client/sessions/{sid}/resume/stream",
             headers=_client_headers(701),
@@ -1188,7 +1188,7 @@ async def test_kb_upload_validation_errors_and_unique_storage_paths(e2e_env, mon
         transport=ASGITransport(app=env["app"]),
         base_url="http://testserver",
     ) as client:
-        # Empty file -> 400
+        # 空文件 -> 返回 400
         empty_res = await client.post(
             "/internal/cs/admin/kb/documents/upload",
             headers=_admin_headers(),
@@ -1197,7 +1197,7 @@ async def test_kb_upload_validation_errors_and_unique_storage_paths(e2e_env, mon
         )
         assert empty_res.status_code == 400
 
-        # Invalid category -> 400
+        # 非法分类 -> 返回 400
         bad_cat_res = await client.post(
             "/internal/cs/admin/kb/documents/upload",
             headers=_admin_headers(),
@@ -1206,7 +1206,7 @@ async def test_kb_upload_validation_errors_and_unique_storage_paths(e2e_env, mon
         )
         assert bad_cat_res.status_code == 400
 
-        # Non-PDF file -> 400 (requires BOTH .pdf suffix AND %PDF magic header)
+        # 非 PDF 文件 -> 返回 400（须同时满足 .pdf 后缀与 %PDF 魔数头）
         non_pdf_res = await client.post(
             "/internal/cs/admin/kb/documents/upload",
             headers=_admin_headers(),
@@ -1231,7 +1231,7 @@ async def test_kb_upload_validation_errors_and_unique_storage_paths(e2e_env, mon
         )
         assert non_pdf_ext_res.status_code == 400
 
-        # Oversized PDF (> MAX_KB_PDF_BYTES) -> 413
+        # 超大 PDF（超过 MAX_KB_PDF_BYTES） -> 返回 413
         oversized_res = await client.post(
             "/internal/cs/admin/kb/documents/upload",
             headers=_admin_headers(),
@@ -1240,7 +1240,7 @@ async def test_kb_upload_validation_errors_and_unique_storage_paths(e2e_env, mon
         )
         assert oversized_res.status_code == 413
 
-        # Concurrent duplicate race protection: IntegrityError on second insert must NOT delete winner's file
+        # 并发重复上传竞争保护：第二次插入触发 IntegrityError 时不得误删先成功写入的文件
         pdf_bytes = b"%PDF-1.4 winner-content"
         first_res = await client.post(
             "/internal/cs/admin/kb/documents/upload",
@@ -1252,7 +1252,7 @@ async def test_kb_upload_validation_errors_and_unique_storage_paths(e2e_env, mon
         winner_path = Path(first_res.json()["file_path"])
         assert winner_path.exists()
 
-        # Force get_by_sha256 to return None so the second upload reaches create_document -> IntegrityError
+        # 强制 get_by_sha256 返回 None，使第二次上传进入 create_document 并触发 IntegrityError
         from app.repositories.kb_repo import KbRepository
 
         async def fake_none_sha256(self, _sha256: str):
@@ -1285,7 +1285,7 @@ async def test_non_uuid_path_params_return_404_and_kb_ingestion_failure_marks_fa
         transport=ASGITransport(app=env["app"]),
         base_url="http://testserver",
     ) as client:
-        # Non-UUID path segments (valid for Java SAFE_PATH_SEGMENT_PATTERN) cleanly return 404
+        # 非 UUID 路径参数（符合 Java SAFE_PATH_SEGMENT_PATTERN）应正常返回 404
         assert (
             await client.get("/internal/cs/client/sessions/abc123/messages", headers=_client_headers(801))
         ).status_code == 404
@@ -1334,7 +1334,7 @@ async def test_non_uuid_path_params_return_404_and_kb_ingestion_failure_marks_fa
             await client.delete("/internal/cs/admin/kb/documents/abc123", headers=_admin_headers())
         ).status_code == 404
 
-        # Background KB ingestion failure when DASHSCOPE_API_KEY is missing marks FAILED instead of PENDING
+        # 缺少 DASHSCOPE_API_KEY 导致后台入库失败时，文档状态应标记为 FAILED 而非停留在 PENDING
         upload_res = await client.post(
             "/internal/cs/admin/kb/documents/upload",
             headers=_admin_headers(),

@@ -11,13 +11,13 @@ VALID_KB_STATUSES = frozenset({"PENDING", "PARSING", "INDEXED", "FAILED"})
 
 
 class KbRepository:
-    """Repository for knowledge base PDF metadata and ingestion status."""
+    """知识库 PDF 元数据与入库状态的数据仓储。"""
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
     async def get_by_sha256(self, file_sha256: str) -> KbDocument | None:
-        """Look up a knowledge base document by SHA-256 digest."""
+        """按 SHA-256 摘要查询知识库文档。"""
         stmt = select(KbDocument).where(KbDocument.file_sha256 == file_sha256)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
@@ -34,7 +34,7 @@ class KbRepository:
         uploaded_by: int | None = None,
         status: str = "PENDING",
     ) -> KbDocument:
-        """Insert a new knowledge base document record."""
+        """插入一条新的知识库文档记录。"""
         if status not in VALID_KB_STATUSES:
             raise ValueError(f"Unsupported KB document status: {status!r}")
         now = utcnow()
@@ -63,7 +63,7 @@ class KbRepository:
         chunk_count: int | None = None,
         error_msg: str | None = None,
     ) -> KbDocument | None:
-        """Update document ingestion status, optional chunk count, and error message."""
+        """更新文档入库状态、可选分块数量及错误信息。"""
         if status not in VALID_KB_STATUSES:
             raise ValueError(f"Unsupported KB document status: {status!r}")
         doc = await self.get_document(doc_id)
@@ -84,7 +84,7 @@ class KbRepository:
         limit: int = 50,
         offset: int = 0,
     ) -> list[KbDocument]:
-        """List knowledge base documents ordered by newest first."""
+        """按创建时间倒序查询知识库文档列表。"""
         stmt = select(KbDocument)
         if status is not None:
             stmt = stmt.where(KbDocument.status == status)
@@ -97,7 +97,7 @@ class KbRepository:
     async def count_documents(
         self, status: str | None = None, category: str | None = None
     ) -> int:
-        """Count knowledge base documents matching optional status and category."""
+        """统计匹配可选状态与分类筛选条件的知识库文档数量。"""
         stmt = select(func.count(KbDocument.id))
         if status is not None:
             stmt = stmt.where(KbDocument.status == status)
@@ -106,7 +106,7 @@ class KbRepository:
         return int((await self.session.execute(stmt)).scalar_one())
 
     async def get_document(self, doc_id: uuid.UUID | str) -> KbDocument | None:
-        """Return a knowledge base document by ID, or None if not found."""
+        """按 ID 查询知识库文档，不存在时返回 None。"""
         did = coerce_uuid(doc_id)
         if did is None:
             return None
@@ -115,7 +115,7 @@ class KbRepository:
         return result.scalar_one_or_none()
 
     async def delete_document(self, doc_id: uuid.UUID | str) -> bool:
-        """Delete a knowledge base document by ID, returning True if deleted."""
+        """按 ID 删除知识库文档，成功删除时返回 True。"""
         doc = await self.get_document(doc_id)
         if doc is None:
             return False

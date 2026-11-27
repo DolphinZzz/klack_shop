@@ -83,7 +83,7 @@ def test_chunk_markdown_merges_short_articles_splits_long_text_and_preserves_tab
     )
     assert len(split_chunks) >= 3
     assert all(len(c.content) <= 220 for c in split_chunks)
-    # Consecutive splits from the same long block share overlapping text
+    # 同一长文本块的相邻切分片段保留重叠文本
     tail_probe = split_chunks[0].content[-20:]
     assert tail_probe in split_chunks[1].content
 
@@ -131,7 +131,7 @@ async def test_mineru_parser_modes_and_markdown_cache(tmp_path, monkeypatch):
     pdf_path = tmp_path / "sample.pdf"
     _write_blank_pdf(pdf_path, pages=2)
 
-    # 1. cloud_api precision mode via mineru.MinerU
+    # 1. 通过 mineru.MinerU 调用 cloud_api 精准解析模式
     seen_calls = []
 
     class FakeMinerUClient:
@@ -158,7 +158,7 @@ async def test_mineru_parser_modes_and_markdown_cache(tmp_path, monkeypatch):
     cached_file = tmp_path / "markdown" / "doc-100.md"
     assert cached_file.exists() and cached_file.read_text(encoding="utf-8") == "# 精确解析正文"
 
-    # 2. local_http mode
+    # 2. local_http 本地 HTTP 模式
     def _mock_transport(request: httpx.Request) -> httpx.Response:
         assert request.url.path.endswith("/file_parse")
         assert request.method == "POST"
@@ -176,7 +176,7 @@ async def test_mineru_parser_modes_and_markdown_cache(tmp_path, monkeypatch):
         http_md = await http_parser.parse_pdf(pdf_path)
     assert http_md == "# 本地 HTTP Markdown"
 
-    # 3. local_cli mode
+    # 3. local_cli 本地命令行模式
     cli_commands = []
 
     async def fake_cli_runner(cmd: list[str]) -> tuple[int, str, str]:
@@ -220,7 +220,7 @@ async def test_mineru_flash_fallback_ignores_precision_base_url_and_kills_cli_on
             pass
 
     monkeypatch.setattr("app.kb.mineru_parser.MinerU", FakeFlashClient)
-    # base_url configured for Precision or local_http must not override flash_base_url
+    # 为精准模式或 local_http 配置的 base_url 不得覆盖 flash_base_url
     parser = MinerUParser(
         mode="cloud_api",
         api_token="",
@@ -238,7 +238,7 @@ async def test_mineru_flash_fallback_ignores_precision_base_url_and_kills_cli_on
     assert await custom_parser.parse_pdf(pdf_path) == "# Flash OK"
     assert flash_init_calls[-1]["flash_base_url"] == "https://flash.internal/api"
 
-    # local_cli kills and reaps subprocess on timeout
+    # local_cli 超时时终止并回收子进程
     import asyncio
 
     proc_events = []
@@ -290,7 +290,7 @@ async def test_get_qwen_embeddings_configures_dashscope_and_dimensions():
     assert emb.openai_api_base == "https://dashscope.aliyuncs.com/compatible-mode/v1"
     assert emb.model_kwargs.get("encoding_format") == "float"
 
-    # Verify >10 inputs are split into batches of at most 10 inputs per request
+    # 验证超过 10 条输入时按每批最多 10 条切分请求
     batch_sizes = []
 
     def _mock_embed_transport(request: httpx.Request) -> httpx.Response:
@@ -432,7 +432,7 @@ async def test_milvus_store_schema_index_scope_filter_and_retriever():
     assert field_map["doc_title"].params["max_length"] == 256
     assert field_map["category"].params["max_length"] == 32
     assert field_map["section_path"].params["max_length"] == 512
-    assert int(field_map["page_no"].dtype) == 4  # DataType.INT32
+    assert int(field_map["page_no"].dtype) == 4  # 对应 DataType.INT32 整型
     assert field_map["scope"].params["max_length"] == 32
     assert field_map["content"].params["max_length"] == 4096
     assert field_map["embedding"].params["dim"] == 1024
@@ -471,13 +471,13 @@ async def test_milvus_store_schema_index_scope_filter_and_retriever():
     assert 'scope == "public"' in sent_filter
     assert '"consumer_law"' in sent_filter and '"mall_policy"' in sent_filter
 
-    # Empty or whitespace-only category filters must return [] without unfiltered search
+    # 空列表或纯空白的分类过滤条件应直接返回 []，不得触发无过滤检索
     calls_before = len(fake_client.search_calls)
     assert await store.search([0.5] * 1024, categories=[]) == []
     assert await store.search([0.5] * 1024, categories=[" ", ""]) == []
     assert len(fake_client.search_calls) == calls_before
 
-    # Whitespace around valid category names is stripped cleanly
+    # 自动去除有效分类名称首尾的空白字符
     filtered_hits = await store.search([0.5] * 1024, categories=[" mall_policy ", " "])
     assert len(filtered_hits) == 1
     assert fake_client.search_calls[-1]["filter"] == 'scope == "public" and category == "mall_policy"'
@@ -653,12 +653,12 @@ async def test_seed_knowledge_docs_is_idempotent_by_sha256(async_db_session, tmp
     law_doc = await repo.get_by_sha256(law_sha)
     assert law_doc is not None and law_doc.category == "consumer_law" and law_doc.status == "INDEXED"
 
-    # Second run with same SHA-256 skips already indexed docs without re-parsing
+    # 相同 SHA-256 第二次执行时跳过已索引文档，无需重新解析
     parsed_files.clear()
     second = await seed_knowledge_docs(async_db_session, svc, docs_dir=docs_dir, mineru_mode="cloud_api")
     assert second.created == 0 and second.skipped == 2 and parsed_files == []
 
-    # If a seeded doc previously failed, running seed again retries it idempotently
+    # 若预置文档上次入库失败，再次执行将幂等重试
     await repo.update_status(law_doc.id, status="FAILED", chunk_count=0, error_msg="retry")
     third = await seed_knowledge_docs(async_db_session, svc, docs_dir=docs_dir, mineru_mode="cloud_api")
     assert third.reindexed == 1 and third.skipped == 1
@@ -733,7 +733,7 @@ async def test_seed_commits_per_document_and_isolates_file_io_errors(tmp_path, m
             )
             assert report.created == 1 and report.failed == 1
 
-        # Verify in a brand-new session that doc1 stayed committed even though doc2 failed
+        # 在全新会话中验证即使 doc2 失败，doc1 仍已独立提交
         async with session_factory() as verify_session:
             verify_repo = KbRepository(verify_session)
             rows = await verify_repo.list_documents()
@@ -742,3 +742,88 @@ async def test_seed_commits_per_document_and_isolates_file_io_errors(tmp_path, m
             assert milvus_docs == [str(rows[0].id)]
     finally:
         await engine.dispose()
+
+
+def test_importing_app_kb_does_not_preload_seed_module():
+    import subprocess
+    import sys
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-W",
+            "error::RuntimeWarning",
+            "-c",
+            "import sys, app.kb; assert 'app.kb.seed' not in sys.modules; from app.kb import SeedReport; assert 'app.kb.seed' in sys.modules",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+
+
+@pytest.mark.asyncio
+async def test_seed_reuses_non_empty_cached_markdown_on_failed_retry(tmp_path, async_db_session):
+    from app.kb.ingestion import KbIngestionService
+    from app.kb.seed import seed_knowledge_docs
+    from app.repositories.kb_repo import KbRepository
+
+    docs_dir = tmp_path / "knowledge_docs"
+    docs_dir.mkdir()
+    pdf = docs_dir / "01_consumer_rights_protection_law.pdf"
+    pdf.write_bytes(b"%PDF-1.4 cached retry")
+
+    parse_calls = 0
+
+    class CountingParser:
+        async def parse_pdf(self, path):
+            nonlocal parse_calls
+            parse_calls += 1
+            return "# 第一章 总则\n## 第一条\n为了保护消费者的合法权益，制定本法。"
+
+    fail_embed = True
+
+    class FlakyEmbed:
+        async def aembed_documents(self, texts):
+            if fail_embed:
+                raise RuntimeError("transient embedding 404")
+            return [[0.2] * 1024 for _ in texts]
+
+    class FakeStore:
+        async def delete_by_doc_id(self, doc_id):
+            pass
+
+        async def upsert_chunks(self, chunks, vectors):
+            pass
+
+    svc = KbIngestionService(
+        session=async_db_session,
+        parser=CountingParser(),
+        embeddings=FlakyEmbed(),
+        store=FakeStore(),
+        storage_dir=tmp_path / "storage",
+    )
+
+    first = await seed_knowledge_docs(
+        async_db_session, svc, docs_dir=docs_dir, use_cached_markdown=True
+    )
+    assert first.failed == 1 and parse_calls == 1
+
+    # 修复向量化服务后第二次执行应复用缓存的 Markdown，不再调用 MinerU
+    fail_embed = False
+    second = await seed_knowledge_docs(
+        async_db_session, svc, docs_dir=docs_dir, use_cached_markdown=True
+    )
+    assert second.reindexed == 1 and parse_calls == 1
+
+    # 若 Markdown 缓存缺失，重试时仍通过 MinerU 重新解析
+    repo = KbRepository(async_db_session)
+    docs = await repo.list_documents()
+    await repo.update_status(docs[0].id, status="FAILED", chunk_count=0, error_msg="missing cache")
+    cache_file = tmp_path / "storage" / "markdown" / f"{docs[0].id}.md"
+    cache_file.unlink()
+    third = await seed_knowledge_docs(
+        async_db_session, svc, docs_dir=docs_dir, use_cached_markdown=True
+    )
+    assert third.reindexed == 1 and parse_calls == 2

@@ -21,13 +21,14 @@ sz-agent/
 │   ├── schemas/              # Pydantic 请求/响应契约
 │   ├── security/             # X-Internal-Secret 常量时间校验与身份头依赖
 │   └── services/             # SSE 流式对话编排、中断恢复与断连保护
+├── docker/milvus/            # Milvus Standalone 内嵌 etcd 配置文件
 ├── knowledge_docs/           # 4 份内置消费者保护法规与商城服务规范 PDF
 ├── scripts/
 │   └── build_knowledge_pdfs.py  # 生成内置知识库标准中文 PDF
 ├── tests/                    # pytest 单元测试与端到端 Mock 测试
 ├── .env.example              # 环境变量模板
 ├── alembic.ini
-├── docker-compose.yml        # PostgreSQL 16 + etcd + MinIO + Milvus Standalone
+├── docker-compose.yml        # PostgreSQL 18 + Milvus Standalone（内嵌存储）
 └── pyproject.toml
 ```
 
@@ -50,7 +51,7 @@ cd sz-agent
 docker compose up -d
 ```
 
-等待容器健康检查通过（`kada-cs-postgres`、`kada-cs-etcd`、`kada-cs-minio`、`kada-cs-milvus`）：
+等待容器健康检查通过（`kada-cs-postgres`、`kada-cs-milvus`）：
 
 ```bash
 docker compose ps

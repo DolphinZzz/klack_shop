@@ -81,16 +81,16 @@ async def test_session_repository_isolation_interrupt_and_admin_view(async_db_se
     s2 = await repo.create_session(user_id=101, title="第二会话")
     await repo.create_session(user_id=202, title="他人会话")
 
-    # Cross-user append must be rejected
+    # 拒绝跨用户追加消息
     with pytest.raises(LookupError):
         await repo.append_message(s1.id, user_id=202, role="user", content="越权写入")
 
-    # Cross-user interrupt update must return None and leave flag untouched
+    # 跨用户更新中断状态应返回 None 且不修改原标志
     assert await repo.set_pending_interrupt(s1.id, user_id=202, pending=True, intent="recommend_order") is None
     owned = await repo.get_session_for_user(s1.id, user_id=101)
     assert owned is not None and owned.has_pending_interrupt is False
 
-    # Owner updates interrupt and appends structured message
+    # 会话归属人更新中断状态并追加结构化消息
     updated = await repo.set_pending_interrupt(s1.id, user_id=101, pending=True, intent="recommend_order")
     assert updated is not None and updated.has_pending_interrupt is True and updated.last_intent == "recommend_order"
 
@@ -108,22 +108,22 @@ async def test_session_repository_isolation_interrupt_and_admin_view(async_db_se
     assert msg.citations_json == [{"doc_title": "选轴指南", "section_path": "第一章"}]
     assert msg.interrupt_payload == {"type": "order_confirm", "draft_id": "d1"}
 
-    # Clearing interrupt preserves last_intent when intent=None
+    # 当 intent=None 时清除中断状态应保留原 last_intent
     cleared = await repo.set_pending_interrupt(s1.id, user_id=101, pending=False, intent=None)
     assert cleared is not None and cleared.has_pending_interrupt is False
     assert cleared.last_intent == "recommend_order"
 
-    # list_sessions returns only user's sessions ordered by last_message_at DESC
+    # list_sessions 仅返回当前用户的会话，并按 last_message_at 降序排列
     user_sessions = await repo.list_sessions(user_id=101, limit=10)
     assert [s.id for s in user_sessions] == [s1.id, s2.id]
     assert len(await repo.list_sessions(user_id=101, limit=1)) == 1
 
-    # Admin replay sees messages without user_id constraint
+    # 管理端回放消息不受 user_id 限制
     admin_msgs = await repo.list_messages_for_admin(s1.id)
     assert len(admin_msgs) == 1 and admin_msgs[0].id == msg.id
     assert await repo.get_session_for_user("not-a-uuid", user_id=101) is None
 
-    # SQLite foreign key cascade deletes child messages when session is deleted
+    # 删除会话时通过 SQLite 外键级联删除子消息
     await async_db_session.delete(s1)
     await async_db_session.flush()
     assert await repo.list_messages_for_admin(s1.id) == []
@@ -139,7 +139,7 @@ async def test_ticket_repository_isolation_filters_and_close_on_reply(async_db_s
 
     s_a = await s_repo.create_session(user_id=101, title="售后咨询")
 
-    # Cannot link ticket to another user's session
+    # 禁止将工单关联到其他用户的会话
     with pytest.raises(LookupError):
         await t_repo.create_ticket(
             user_id=202,
@@ -154,22 +154,22 @@ async def test_ticket_repository_isolation_filters_and_close_on_reply(async_db_s
     t2 = await t_repo.create_ticket(101, None, "complaint", "包装破损", "外盒压扁", "ORD2002")
     t3 = await t_repo.create_ticket(202, None, "after_sale", "他人退货", "申请退货", "ORD3001")
 
-    # Cross-user followup rejected
+    # 拒绝跨用户追问工单
     with pytest.raises(LookupError):
         await t_repo.add_user_followup(t1.id, user_id=202, content="冒充追问")
 
-    # User listing & count isolated
+    # 用户工单列表与数量按用户隔离
     user_tickets = await t_repo.list_tickets_for_user(101)
     assert {t.id for t in user_tickets} == {t1.id, t2.id}
     assert await t_repo.count_tickets_for_user(101) == 2
 
-    # Admin reply with close_ticket=True and no session_id works cleanly
+    # 无关联 session_id 时管理端回复并设置 close_ticket=True 可正常关闭工单
     closed_t2 = await t_repo.add_admin_reply(
         t2.id, admin_id=2, admin_name="客服B", content="已补发新包装盒", close_ticket=True
     )
     assert closed_t2.status == "CLOSED" and closed_t2.closed_at is not None
 
-    # Admin listing filters
+    # 管理端工单列表筛选条件
     closed_list = await t_repo.list_tickets_for_admin(status="CLOSED")
     assert [t.id for t in closed_list] == [t2.id]
     by_order = await t_repo.list_tickets_for_admin(related_order_no="ORD3001")
@@ -182,7 +182,7 @@ async def test_ticket_repository_isolation_filters_and_close_on_reply(async_db_s
     assert detail_admin is not None and len(detail_admin.replies) == 1
     assert detail_admin.replies[0].sender_type == "ADMIN"
 
-    # Detail reloads replies after user followup on t1
+    # 用户对 t1 追问后，详情接口应重新加载最新回复列表
     await t_repo.add_admin_reply(t1.id, admin_id=1, admin_name="客服A", content="明天发", close_ticket=False)
     await t_repo.add_user_followup(t1.id, user_id=101, content="麻烦加急")
     detail_user = await t_repo.get_ticket_detail_for_user(t1.id, user_id=101)
@@ -210,7 +210,7 @@ async def test_kb_repository_lifecycle_and_sha256_uniqueness(async_db_session):
     found = await repo.get_by_sha256("deadbeef" * 8)
     assert found is not None and found.id == doc.id
 
-    # Duplicate sha256 violates uk_kb_doc_sha256
+    # 重复的 sha256 违反唯一约束 uk_kb_doc_sha256
     with pytest.raises(IntegrityError):
         await repo.create_document(
             title="重复文件",
@@ -224,7 +224,7 @@ async def test_kb_repository_lifecycle_and_sha256_uniqueness(async_db_session):
         )
     await async_db_session.rollback()
 
-    # Re-create and walk status transitions
+    # 重新创建文档并验证状态流转
     doc = await repo.create_document(
         title="商城售后规范",
         category="mall_policy",

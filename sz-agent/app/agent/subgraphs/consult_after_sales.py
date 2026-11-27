@@ -21,7 +21,7 @@ def build_consult_after_sales_subgraph(
     kb_retriever: Any,
     llm_factory: LlmFactory,
 ) -> CompiledStateGraph:
-    """Build the order-tracking, after-sales, and policy/law RAG consultation subgraph."""
+    """构建订单与物流查询、售后进度查询及法规/商城规范 RAG 咨询子图。"""
     after_sales_tools = build_after_sales_tools(mall_client, kb_retriever)
     after_sales_agent = create_agent(
         model=llm_factory("after_sales"),

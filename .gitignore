@@ -1,2 +1,4 @@
 .worktrees/
 .superpowers/
+.DS_Store
+**/.DS_Store

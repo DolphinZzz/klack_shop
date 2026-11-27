@@ -35,7 +35,7 @@ LOW_CONFIDENCE_THRESHOLD = 0.6
 
 
 def to_psycopg_dsn(postgres_dsn: str) -> str:
-    """Convert a SQLAlchemy asyncpg/psycopg DSN into a standard libpq PostgreSQL DSN."""
+    """将 SQLAlchemy 的 `asyncpg`/`psycopg` DSN 转换为标准 `libpq` PostgreSQL DSN。"""
     for prefix in ("postgresql+asyncpg://", "postgresql+psycopg://", "postgres+asyncpg://"):
         if postgres_dsn.startswith(prefix):
             return "postgresql://" + postgres_dsn[len(prefix) :]
@@ -43,7 +43,7 @@ def to_psycopg_dsn(postgres_dsn: str) -> str:
 
 
 def build_thread_id(user_id: int, session_id: str) -> str:
-    """Construct the user-isolated LangGraph thread identifier."""
+    """构造按用户隔离的 LangGraph 会话线程 ID（`thread_id`）。"""
     return f"u:{user_id}:s:{session_id}"
 
 
@@ -53,7 +53,7 @@ async def open_postgres_checkpointer(
     *,
     max_size: int = 10,
 ) -> AsyncIterator[AsyncPostgresSaver]:
-    """Open an AsyncConnectionPool, initialize AsyncPostgresSaver tables, and yield it."""
+    """打开 `AsyncConnectionPool`，初始化 `AsyncPostgresSaver` 表结构并产出检查点保存器。"""
     conninfo = to_psycopg_dsn(postgres_dsn)
     pool = AsyncConnectionPool(
         conninfo=conninfo,
@@ -88,7 +88,7 @@ def build_customer_service_graph(
     ticket_repo_factory: Any = None,
     llm_factory: LlmFactory | None = None,
 ) -> CompiledStateGraph:
-    """Compile the root KlackCraft customer service LangGraph with 5 routed branches."""
+    """编译包含 5 条路由分支的咔嗒造物（KlackCraft）根级智能客服 `StateGraph`。"""
     resolved_llm_factory = llm_factory or create_default_llm_factory(get_settings())
 
     async def intent_router(state: CustomerServiceState) -> dict[str, Any]:

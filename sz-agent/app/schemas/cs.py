@@ -14,7 +14,7 @@ VALID_KB_CATEGORIES: frozenset[str] = frozenset(
 
 
 def compute_total_pages(total: int, limit: int) -> int:
-    """Compute total page count for 1-indexed pagination."""
+    """计算从 1 开始计数的分页总页数。"""
     if total <= 0 or limit <= 0:
         return 0
     return (total + limit - 1) // limit
@@ -28,13 +28,13 @@ def _require_non_blank(value: str, label: str) -> str:
 
 
 class CreateSessionRequest(BaseModel):
-    """Request body for creating a customer service session."""
+    """创建客服会话的请求体。"""
 
     title: str | None = Field(default=None, max_length=128)
 
 
 class ChatStreamRequest(BaseModel):
-    """Request body for initiating an SSE customer service chat turn."""
+    """发起 SSE 客服流式对话轮次的请求体。"""
 
     message: str = Field(..., min_length=1, max_length=4000)
     force_ticket: bool = Field(
@@ -49,7 +49,7 @@ class ChatStreamRequest(BaseModel):
 
 
 class ResumeStreamRequest(BaseModel):
-    """Request body for resuming an interrupted order confirmation turn."""
+    """恢复下单确认中断轮次的请求体。"""
 
     action: Literal["confirm", "cancel"]
     address_id: int | None = Field(
@@ -61,7 +61,7 @@ class ResumeStreamRequest(BaseModel):
 
 
 class TicketFollowupRequest(BaseModel):
-    """Request body for appending a client follow-up reply to a ticket."""
+    """客户端向工单追加追问回复的请求体。"""
 
     content: str = Field(..., min_length=1, max_length=4000)
 
@@ -72,7 +72,7 @@ class TicketFollowupRequest(BaseModel):
 
 
 class AdminTicketReplyRequest(BaseModel):
-    """Request body for an admin reply to a support ticket."""
+    """管理员回复客服工单的请求体。"""
 
     content: str = Field(..., min_length=1, max_length=4000)
     close_ticket: bool = Field(
@@ -87,13 +87,13 @@ class AdminTicketReplyRequest(BaseModel):
 
 
 class AdminTicketCloseRequest(BaseModel):
-    """Optional request body when closing a support ticket."""
+    """关闭客服工单时的可选请求体。"""
 
     reason: str | None = Field(default=None, max_length=256)
 
 
 class KbReindexRequest(BaseModel):
-    """Optional request body when reindexing a knowledge base document."""
+    """重建知识库文档索引时的可选请求体。"""
 
     use_cached_markdown: bool = Field(
         default=False,
@@ -102,7 +102,7 @@ class KbReindexRequest(BaseModel):
 
 
 class SessionResponse(BaseModel):
-    """Serialized customer service session metadata."""
+    """序列化后的客服会话元数据。"""
 
     id: str
     user_id: int
@@ -130,13 +130,13 @@ class SessionResponse(BaseModel):
 
 
 class SessionListResponse(BaseModel):
-    """List response for a user's customer service sessions."""
+    """用户客服会话列表响应。"""
 
     items: list[SessionResponse]
 
 
 class MessageResponse(BaseModel):
-    """Serialized display message inside a customer service session."""
+    """客服会话内序列化后的展示消息。"""
 
     id: str
     session_id: str
@@ -168,7 +168,7 @@ class MessageResponse(BaseModel):
 
 
 class SessionMessagesResponse(BaseModel):
-    """Session message history plus any active pending order interrupt payload."""
+    """会话历史消息列表及当前激活的待确认下单中断载荷。"""
 
     session: SessionResponse
     messages: list[MessageResponse]
@@ -176,7 +176,7 @@ class SessionMessagesResponse(BaseModel):
 
 
 class TicketReplyResponse(BaseModel):
-    """Serialized ticket reply entry."""
+    """序列化后的工单回复记录。"""
 
     id: str
     ticket_id: str
@@ -200,7 +200,7 @@ class TicketReplyResponse(BaseModel):
 
 
 class TicketSummaryResponse(BaseModel):
-    """Serialized support ticket summary."""
+    """序列化后的客服工单摘要。"""
 
     id: str
     ticket_no: str
@@ -236,7 +236,7 @@ class TicketSummaryResponse(BaseModel):
 
 
 class TicketDetailResponse(TicketSummaryResponse):
-    """Serialized support ticket with chronological replies."""
+    """包含按时间正序排列回复列表的客服工单详情。"""
 
     replies: list[TicketReplyResponse] = Field(default_factory=list)
 
@@ -248,7 +248,7 @@ class TicketDetailResponse(TicketSummaryResponse):
 
 
 class AdminTicketDetailResponse(TicketDetailResponse):
-    """Admin ticket detail including linked session message replay."""
+    """包含关联会话历史消息回放的管理端工单详情。"""
 
     session_messages: list[MessageResponse] = Field(default_factory=list)
 
@@ -266,7 +266,7 @@ class AdminTicketDetailResponse(TicketDetailResponse):
 
 
 class TicketPageResponse(BaseModel):
-    """Paginated support ticket list."""
+    """分页客服工单列表响应。"""
 
     current: int
     limit: int
@@ -276,7 +276,7 @@ class TicketPageResponse(BaseModel):
 
 
 class KbDocumentResponse(BaseModel):
-    """Serialized knowledge base PDF document ledger row."""
+    """序列化后的知识库 PDF 文档台账记录。"""
 
     id: str
     title: str
@@ -314,7 +314,7 @@ class KbDocumentResponse(BaseModel):
 
 
 class KbDocumentPageResponse(BaseModel):
-    """Paginated knowledge base document list."""
+    """分页知识库文档列表响应。"""
 
     current: int
     limit: int
@@ -324,7 +324,7 @@ class KbDocumentPageResponse(BaseModel):
 
 
 class DeleteKbDocumentResponse(BaseModel):
-    """Result payload after deleting a knowledge base document."""
+    """删除知识库文档后的结果响应。"""
 
     deleted: bool
     id: str

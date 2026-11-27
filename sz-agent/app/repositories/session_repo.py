@@ -12,7 +12,7 @@ VALID_MESSAGE_ROLES = frozenset({"user", "assistant", "system"})
 
 
 class SessionRepository:
-    """User-isolated repository for customer service sessions and messages."""
+    """按用户隔离的客服会话与消息数据仓储。"""
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -20,7 +20,7 @@ class SessionRepository:
     async def create_session(
         self, user_id: int, title: str | None = None
     ) -> CsSession:
-        """Create a new ACTIVE customer service session owned by user_id."""
+        """创建归属于 user_id 的新 ACTIVE 客服会话。"""
         now = utcnow()
         clean_title = title.strip()[:128] if title and title.strip() else "新会话"
         cs_session = CsSession(
@@ -42,7 +42,7 @@ class SessionRepository:
         limit: int = 20,
         status: str | None = None,
     ) -> list[CsSession]:
-        """List sessions owned by user_id ordered by most recent message."""
+        """按最近消息时间倒序查询归属于 user_id 的会话列表。"""
         stmt = select(CsSession).where(CsSession.user_id == user_id)
         if status is not None:
             stmt = stmt.where(CsSession.status == status)
@@ -56,7 +56,7 @@ class SessionRepository:
     async def get_session_for_user(
         self, session_id: uuid.UUID | str, user_id: int
     ) -> CsSession | None:
-        """Return the session if it exists and belongs to user_id, else None."""
+        """若会话存在且归属于 user_id 则返回该会话，否则返回 None。"""
         sid = coerce_uuid(session_id)
         if sid is None:
             return None
@@ -78,7 +78,7 @@ class SessionRepository:
         citations_json: Any | None = None,
         interrupt_payload: dict[str, Any] | None = None,
     ) -> CsMessage:
-        """Append a message after verifying session ownership by user_id."""
+        """校验会话归属于 user_id 后追加一条消息记录。"""
         if role not in VALID_MESSAGE_ROLES:
             raise ValueError(f"Unsupported message role: {role!r}")
 
@@ -109,7 +109,7 @@ class SessionRepository:
     async def list_messages_for_user(
         self, session_id: uuid.UUID | str, user_id: int
     ) -> list[CsMessage] | None:
-        """Return ordered messages if session belongs to user_id, else None."""
+        """若会话归属于 user_id 则按时间升序返回消息列表，否则返回 None。"""
         cs_session = await self.get_session_for_user(session_id, user_id)
         if cs_session is None:
             return None
@@ -127,7 +127,7 @@ class SessionRepository:
     async def list_messages_for_admin(
         self, session_id: uuid.UUID | str
     ) -> list[CsMessage]:
-        """Return ordered messages of a session for admin ticket context replay."""
+        """按时间升序返回指定会话的消息列表，供管理端工单上下文回放使用。"""
         sid = coerce_uuid(session_id)
         if sid is None:
             return []
@@ -146,7 +146,7 @@ class SessionRepository:
         pending: bool,
         intent: str | None = None,
     ) -> CsSession | None:
-        """Update interrupt state on a session owned by user_id, else return None."""
+        """更新归属于 user_id 的会话中断状态，不存在或无权访问时返回 None。"""
         cs_session = await self.get_session_for_user(session_id, user_id)
         if cs_session is None:
             return None

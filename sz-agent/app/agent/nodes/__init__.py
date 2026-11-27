@@ -19,7 +19,7 @@ def build_conversational_node(
     role: LlmRole,
     system_prompt: str,
 ):
-    """Build a single-turn conversational LangGraph node parameterized by role and prompt."""
+    """构建按角色与系统提示词参数化的单轮对话 LangGraph 节点。"""
 
     async def _node(state: CustomerServiceState) -> dict[str, Any]:
         llm = llm_factory(role)

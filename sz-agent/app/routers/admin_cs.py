@@ -112,7 +112,7 @@ async def _run_kb_ingestion_task(
 
 @router.get("/ping")
 def admin_ping(actor: AdminActor = Depends(get_admin_actor)) -> dict[str, int | str]:
-    """Health/auth verification route for internal admin requests."""
+    """内部管理端请求的健康检查与鉴权校验路由。"""
     return {"admin_id": actor.admin_id, "admin_name": actor.admin_name}
 
 
@@ -128,7 +128,7 @@ async def list_admin_tickets(
     _actor: AdminActor = Depends(get_admin_actor),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> TicketPageResponse:
-    """List support tickets for the admin console with filtering and pagination."""
+    """按条件筛选并分页查询管理端客服工单列表。"""
     normalized_status = normalize_optional_filter(
         ticket_status,
         VALID_TICKET_STATUSES,
@@ -176,7 +176,7 @@ async def get_admin_ticket_detail(
     _actor: AdminActor = Depends(get_admin_actor),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> AdminTicketDetailResponse:
-    """Return full ticket detail, reply timeline, and linked session message replay."""
+    """返回完整工单详情、回复时间线及关联会话的历史消息回放。"""
     tid = parse_uuid_or_404(ticket_id, "工单不存在")
     ticket = await TicketRepository(db).get_ticket_detail_for_admin(tid)
     if ticket is None:
@@ -195,7 +195,7 @@ async def reply_admin_ticket(
     actor: AdminActor = Depends(get_admin_actor),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> TicketDetailResponse:
-    """Add an admin reply, update ticket status, and sync a system note to the linked session."""
+    """添加管理员回复、更新工单状态，并向关联会话同步一条系统提示消息。"""
     tid = parse_uuid_or_404(ticket_id, "工单不存在")
     admin_name = actor.admin_name or f"管理员{actor.admin_id}"
     try:
@@ -220,7 +220,7 @@ async def close_admin_ticket(
     _actor: AdminActor = Depends(get_admin_actor),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> TicketDetailResponse:
-    """Close a support ticket."""
+    """关闭客服工单。"""
     tid = parse_uuid_or_404(ticket_id, "工单不存在")
     try:
         closed = await TicketRepository(db).close_ticket(tid)
@@ -238,7 +238,7 @@ async def list_kb_documents(
     _actor: AdminActor = Depends(get_admin_actor),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> KbDocumentPageResponse:
-    """List knowledge base PDF documents with optional status/category filters."""
+    """按可选状态与分类筛选条件分页查询知识库 PDF 文档列表。"""
     normalized_status = normalize_optional_filter(
         doc_status,
         VALID_KB_STATUSES,
@@ -281,7 +281,7 @@ async def upload_kb_document(
     actor: AdminActor = Depends(get_admin_actor),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> KbDocumentResponse:
-    """Upload a PDF document with SHA-256 deduplication and trigger async KB ingestion."""
+    """上传 PDF 文档（基于 SHA-256 去重）并触发异步知识库解析入库任务。"""
     normalized_category = normalize_optional_filter(
         category,
         VALID_KB_CATEGORIES,
@@ -320,7 +320,7 @@ async def upload_kb_document(
         getattr(request.app.state, "kb_storage_dir", None) or settings.kb_storage_dir
     ).resolve()
     safe_filename = _sanitize_upload_filename(file.filename)
-    # Use a per-upload UUID prefix so concurrent duplicate uploads never unlink the winner's file on rollback
+    # 为每次上传添加独立 UUID 前缀，避免并发重复上传回滚时误删成功入库的文件
     target_path = storage_root / "pdfs" / f"{uuid.uuid4().hex}_{safe_filename}"
 
     def _write_pdf() -> None:
@@ -352,7 +352,7 @@ async def upload_kb_document(
             detail="相同内容的知识库文档已存在",
         ) from exc
 
-    # Ensure session_factory is resolvable even when app.state was partially configured
+    # 确保即使 app.state 仅部分初始化时仍能解析出 session_factory
     if getattr(request.app.state, "session_factory", None) is None:
         request.app.state.session_factory = resolve_session_factory(request)
 
@@ -374,7 +374,7 @@ async def reindex_kb_document(
     _actor: AdminActor = Depends(get_admin_actor),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> KbDocumentResponse:
-    """Re-queue an existing knowledge base document for asynchronous parsing and indexing."""
+    """将已有知识库文档重新加入异步解析与向量索引队列。"""
     did = parse_uuid_or_404(doc_id, "知识库文档不存在")
     repo = KbRepository(db)
     doc = await repo.get_document(did)
@@ -405,7 +405,7 @@ async def delete_kb_document(
     _actor: AdminActor = Depends(get_admin_actor),
     db: AsyncSession = Depends(get_request_db_session),
 ) -> DeleteKbDocumentResponse:
-    """Delete Milvus vectors, cached markdown, PG row, and stored PDF under kb_storage_dir."""
+    """删除 Milvus 向量、Markdown 缓存、PostgreSQL 记录以及 `kb_storage_dir` 下的 PDF 文件。"""
     did = parse_uuid_or_404(doc_id, "知识库文档不存在")
     repo = KbRepository(db)
     doc = await repo.get_document(did)

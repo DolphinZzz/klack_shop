@@ -13,18 +13,18 @@ VALID_TICKET_STATUSES = frozenset({"OPEN", "REPLIED", "CLOSED"})
 
 
 def _generate_ticket_no(now: datetime) -> str:
-    """Generate a unique TK-prefixed ticket number within 32 characters."""
+    """生成 32 字符以内、以 TK 为前缀的唯一工单号。"""
     suffix = uuid.uuid4().int % 10**8
     return f"TK{now.strftime('%Y%m%d%H%M%S')}{suffix:08d}"
 
 
 def _escape_like(term: str) -> str:
-    """Escape SQL LIKE wildcard characters in user-supplied search strings."""
+    """转义用户输入搜索词中的 SQL LIKE 通配符。"""
     return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 class TicketRepository:
-    """Repository for asynchronous human support tickets and replies."""
+    """异步人工客服工单与回复的数据仓储。"""
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -38,7 +38,7 @@ class TicketRepository:
         summary: str | None = None,
         related_order_no: str | None = None,
     ) -> CsTicket:
-        """Create an OPEN ticket, validating session ownership if session_id is given."""
+        """创建状态为 OPEN 的工单；若提供了 session_id 则校验会话归属权。"""
         linked_sid: uuid.UUID | None = None
         if session_id is not None:
             sid = coerce_uuid(session_id)
@@ -77,7 +77,7 @@ class TicketRepository:
         limit: int = 20,
         offset: int = 0,
     ) -> list[CsTicket]:
-        """List tickets owned by user_id ordered by newest first."""
+        """按创建时间倒序查询归属于 user_id 的工单列表。"""
         stmt = select(CsTicket).where(CsTicket.user_id == user_id)
         if status is not None:
             stmt = stmt.where(CsTicket.status == status)
@@ -88,7 +88,7 @@ class TicketRepository:
     async def count_tickets_for_user(
         self, user_id: int, status: str | None = None
     ) -> int:
-        """Count tickets owned by user_id with optional status filter."""
+        """统计归属于 user_id 且匹配可选状态筛选条件的工单数量。"""
         stmt = select(func.count(CsTicket.id)).where(CsTicket.user_id == user_id)
         if status is not None:
             stmt = stmt.where(CsTicket.status == status)
@@ -97,7 +97,7 @@ class TicketRepository:
     async def get_ticket_detail_for_user(
         self, ticket_id: uuid.UUID | str, user_id: int
     ) -> CsTicket | None:
-        """Return ticket with replies if owned by user_id, else None."""
+        """若工单归属于 user_id 则返回含回复列表的工单详情，否则返回 None。"""
         tid = coerce_uuid(ticket_id)
         if tid is None:
             return None
@@ -113,7 +113,7 @@ class TicketRepository:
     async def add_user_followup(
         self, ticket_id: uuid.UUID | str, user_id: int, content: str
     ) -> CsTicket:
-        """Append a USER reply and reopen an OPEN/REPLIED ticket owned by user_id."""
+        """追加一条 USER 类型追问回复，并将归属于 user_id 的 OPEN/REPLIED 工单重新置为 OPEN。"""
         if not content or not content.strip():
             raise ValueError("追问内容不能为空")
 
@@ -176,7 +176,7 @@ class TicketRepository:
         limit: int = 20,
         offset: int = 0,
     ) -> list[CsTicket]:
-        """List tickets for admin console with optional filters and pagination."""
+        """按可选筛选条件分页查询管理端工单列表。"""
         clauses = self._build_admin_filter_clauses(
             status=status,
             category=category,
@@ -200,7 +200,7 @@ class TicketRepository:
         related_order_no: str | None = None,
         keyword: str | None = None,
     ) -> int:
-        """Count tickets matching admin filter criteria."""
+        """统计符合管理端筛选条件的工单总数。"""
         clauses = self._build_admin_filter_clauses(
             status=status,
             category=category,
@@ -213,7 +213,7 @@ class TicketRepository:
     async def get_ticket_detail_for_admin(
         self, ticket_id: uuid.UUID | str
     ) -> CsTicket | None:
-        """Return ticket with replies for admin inspection, or None if not found."""
+        """返回包含回复列表的工单详情供管理端查看，不存在时返回 None。"""
         tid = coerce_uuid(ticket_id)
         if tid is None:
             return None
@@ -227,7 +227,7 @@ class TicketRepository:
         content: str,
         close_ticket: bool = False,
     ) -> CsTicket:
-        """Write an ADMIN reply, update status, and sync a system message to session."""
+        """写入 ADMIN 回复、更新工单状态，并向关联会话同步一条系统通知消息。"""
         if not content or not content.strip():
             raise ValueError("回复内容不能为空")
 
@@ -281,7 +281,7 @@ class TicketRepository:
         return await self._reload_ticket_with_replies(ticket.id)
 
     async def close_ticket(self, ticket_id: uuid.UUID | str) -> CsTicket:
-        """Transition a ticket to CLOSED status."""
+        """将工单状态流转为 CLOSED。"""
         ticket = await self.get_ticket_detail_for_admin(ticket_id)
         if ticket is None:
             raise LookupError("工单不存在")

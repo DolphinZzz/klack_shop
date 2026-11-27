@@ -37,7 +37,7 @@ _SUBGRAPH_ROLLUP_KEYS = frozenset(
 
 
 def format_sse_event(event_name: str, payload: Mapping[str, Any]) -> str:
-    """Format a named SSE event frame with compact UTF-8 JSON data."""
+    """将具名 SSE 事件及紧凑 UTF-8 JSON 数据格式化为标准事件帧。"""
     return f"event: {event_name}\ndata: {json.dumps(dict(payload), ensure_ascii=False)}\n\n"
 
 
@@ -53,7 +53,7 @@ def _extract_user_facing_delta(
     metadata: Mapping[str, Any],
     ns: tuple[str, ...],
 ) -> str | None:
-    """Allow only user-facing assistant text deltas, filtering router/extractor/tool JSON."""
+    """仅放行面向用户的助手文本增量，过滤路由、信息抽取与工具调用的内部输出。"""
     if not isinstance(msg, AIMessage) or _has_tool_call_payload(msg):
         return None
 
@@ -105,7 +105,7 @@ def _normalize_interrupt_payload(raw_interrupt: Any, session_id: str) -> dict[st
 
 @dataclass(slots=True)
 class PreparedTurn:
-    """Validated session turn metadata ready for SSE graph streaming."""
+    """已完成校验、可直接用于 LangGraph SSE 流式执行的会话轮次上下文。"""
 
     session_id: uuid.UUID
     user_id: int
@@ -115,7 +115,7 @@ class PreparedTurn:
 
 
 class ChatService:
-    """Orchestrates user-isolated LangGraph streaming, auto-cancel, persistence, and SSE."""
+    """编排按用户隔离的 LangGraph 流式推理、中断自动取消、消息持久化与 SSE 推送。"""
 
     def __init__(
         self,
@@ -139,7 +139,7 @@ class ChatService:
         force_ticket: bool = False,
         trace_id: str = "",
     ) -> PreparedTurn:
-        """Verify ownership, auto-cancel any pending order interrupt, and persist the user message."""
+        """校验会话归属权，自动取消未决的下单确认中断，并持久化用户消息。"""
         async with self.session_factory() as db:
             repo = SessionRepository(db)
             cs_session = await repo.get_session_for_user(session_id, user_id)
@@ -199,7 +199,7 @@ class ChatService:
         address_id: int | None = None,
         reason: str | None = None,
     ) -> PreparedTurn:
-        """Verify ownership and active order interrupt before resuming LangGraph execution."""
+        """在恢复 LangGraph 执行前校验会话归属权及当前激活的下单确认中断。"""
         async with self.session_factory() as db:
             repo = SessionRepository(db)
             cs_session = await repo.get_session_for_user(session_id, user_id)
@@ -279,7 +279,7 @@ class ChatService:
         request: Request,
         trace_id: str = "",
     ) -> AsyncIterator[str]:
-        """Stream SSE events (`meta`, `token`, `card`, `interrupt`, `done`, `error`) for one turn."""
+        """流式推送单轮对话的 SSE 事件（`meta`、`token`、`card`、`interrupt`、`done`、`error`）。"""
         sid_str = str(prepared.session_id)
         message_id = uuid.uuid4()
         message_id_str = str(message_id)
@@ -378,7 +378,7 @@ class ChatService:
                 )
             except asyncio.CancelledError:
                 raise
-            except Exception as exc:  # noqa: BLE001 - emit clean SSE error event to client
+            except Exception as exc:  # noqa: BLE001 - 向客户端输出规范的 SSE 错误事件
                 logger.exception("SSE graph stream failed for session %s", sid_str)
                 await queue.put(("error", exc))
 

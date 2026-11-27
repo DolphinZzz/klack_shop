@@ -13,7 +13,7 @@ _INVALID_ORDER_NO_RE = re.compile(r"[/\\\x00-\x1f\x7f]|\.\.")
 
 
 class MallClientError(RuntimeError):
-    """Structured error raised when Java /internal/agent/** returns a business or HTTP failure."""
+    """Java `/internal/agent/**` 接口返回业务错误或 HTTP 异常时抛出的结构化错误。"""
 
     def __init__(
         self,
@@ -58,7 +58,7 @@ def _format_price_param(value: Decimal | float | int | str, field_name: str) -> 
 
 
 class MallInternalClient:
-    """Async HTTP client for Java `/internal/agent/**` mall data and direct order creation."""
+    """用于访问 Java `/internal/agent/**` 商城数据与直接建单接口的异步 HTTP 客户端。"""
 
     def __init__(
         self,
@@ -84,11 +84,11 @@ class MallInternalClient:
 
     @classmethod
     def from_settings(cls, settings: Settings, **overrides: Any) -> MallInternalClient:
-        """Instantiate MallInternalClient from application Settings."""
+        """根据应用 `Settings` 配置实例化 `MallInternalClient`。"""
         return cls(settings=settings, **overrides)
 
     async def aclose(self) -> None:
-        """Close the underlying httpx.AsyncClient if owned by this instance."""
+        """若底层 `httpx.AsyncClient` 由当前实例持有，则将其关闭。"""
         if self._owns_client:
             await self._client.aclose()
 
@@ -173,7 +173,7 @@ class MallInternalClient:
         category_id: int | None = None,
         limit: int = 5,
     ) -> list[dict[str, Any]]:
-        """Query recommended products sorted by hot, sales, or browse."""
+        """按热销（`hot`）、销量（`sales`）或浏览量（`browse`）排序查询推荐商品。"""
         params: dict[str, Any] = {
             "sort": sort,
             "limit": _require_positive_int(limit, "limit"),
@@ -191,7 +191,7 @@ class MallInternalClient:
         max_price: Decimal | float | int | str | None = None,
         limit: int = 6,
     ) -> list[dict[str, Any]]:
-        """Search on-sale products by keyword, category, and price range."""
+        """按关键词、分类及价格区间检索在售商品。"""
         params: dict[str, Any] = {"limit": _require_positive_int(limit, "limit")}
         if keyword is not None and keyword.strip():
             params["keyword"] = keyword.strip()
@@ -205,13 +205,13 @@ class MallInternalClient:
         return list(data) if isinstance(data, list) else []
 
     async def get_product_detail(self, product_id: int) -> dict[str, Any]:
-        """Fetch product details, active flash-sale status, and full SKU list."""
+        """获取商品详情、进行中的秒杀活动状态及完整 SKU 列表。"""
         pid = _require_positive_int(product_id, "product_id")
         data = await self._request("GET", f"/internal/agent/products/{pid}")
         return dict(data) if isinstance(data, dict) else {}
 
     async def list_user_addresses(self, user_id: int) -> list[dict[str, Any]]:
-        """Fetch active shipping addresses owned by *user_id*."""
+        """获取指定 `user_id` 名下的可用收货地址列表。"""
         uid = _require_positive_int(user_id, "user_id")
         data = await self._request("GET", f"/internal/agent/users/{uid}/addresses")
         return list(data) if isinstance(data, list) else []
@@ -224,7 +224,7 @@ class MallInternalClient:
         page: int = 1,
         limit: int = 5,
     ) -> dict[str, Any]:
-        """Fetch paginated order summaries owned by *user_id*."""
+        """分页获取指定 `user_id` 名下的订单摘要列表。"""
         uid = _require_positive_int(user_id, "user_id")
         params: dict[str, Any] = {
             "tab": tab,
@@ -239,7 +239,7 @@ class MallInternalClient:
         return {"current": page, "limit": limit, "totalPage": 0, "total": 0, "rows": []}
 
     async def get_order_detail(self, user_id: int, order_no: str) -> dict[str, Any]:
-        """Fetch order detail, shipment record, status timeline, and active after-sale."""
+        """获取订单详情、发货记录、状态时间轴及关联售后单信息。"""
         uid = _require_positive_int(user_id, "user_id")
         encoded_order_no = _encode_order_no(order_no)
         data = await self._request("GET", f"/internal/agent/users/{uid}/orders/{encoded_order_no}")
@@ -252,7 +252,7 @@ class MallInternalClient:
         service_no: str | None = None,
         limit: int = 10,
     ) -> list[dict[str, Any]]:
-        """Fetch after-sale records owned by *user_id*."""
+        """获取指定 `user_id` 名下的售后申请记录列表。"""
         uid = _require_positive_int(user_id, "user_id")
         params: dict[str, Any] = {"limit": _require_positive_int(limit, "limit")}
         if order_no is not None and order_no.strip():
@@ -271,7 +271,7 @@ class MallInternalClient:
         address_id: int,
         idempotency_key: str,
     ) -> dict[str, Any]:
-        """Create an idempotent pending-payment order for *user_id* after interrupt confirmation."""
+        """在 `interrupt` 确认后为指定 `user_id` 幂等创建待支付订单。"""
         uid = _require_positive_int(user_id, "user_id")
         pid = _require_positive_int(product_id, "product_id")
         sid = _require_positive_int(sku_id, "sku_id")

@@ -12,7 +12,7 @@ def test_health_requires_no_secret_and_internal_routes_reject_invalid_secret(mon
     assert client.get("/health").status_code == 200
     assert client.get("/internal/cs/client/ping").status_code == 401
     assert client.get("/internal/cs/client/ping", headers={"X-Internal-Secret": "wrong"}).status_code == 401
-    assert client.get("/internal/cs/client/ping", headers={"X-Internal-Secret": "test-secret-xyz"}).status_code == 401  # missing X-User-Id
+    assert client.get("/internal/cs/client/ping", headers={"X-Internal-Secret": "test-secret-xyz"}).status_code == 401  # 缺少 X-User-Id
     res = client.get("/internal/cs/client/ping", headers={"X-Internal-Secret": "test-secret-xyz", "X-User-Id": "10086"})
     assert res.status_code == 200 and res.json()["user_id"] == 10086
 

@@ -26,7 +26,7 @@ JSON_VARIANT = JSONB().with_variant(JSON(), "sqlite")
 
 
 class CsSession(Base):
-    """Customer service conversation session belonging to a single user."""
+    """归属于单个用户的客服对话会话。"""
 
     __tablename__ = "cs_sessions"
 
@@ -72,7 +72,7 @@ Index("idx_cs_sessions_user_time", CsSession.user_id, CsSession.last_message_at.
 
 
 class CsMessage(Base):
-    """Display message log entry inside a customer service session."""
+    """客服会话内的展示消息记录。"""
 
     __tablename__ = "cs_messages"
 
@@ -107,7 +107,7 @@ Index("idx_cs_messages_session_time", CsMessage.session_id, CsMessage.created_at
 
 
 class CsTicket(Base):
-    """Asynchronous human customer service support ticket."""
+    """异步人工客服支持工单。"""
 
     __tablename__ = "cs_tickets"
     __table_args__ = (UniqueConstraint("ticket_no", name="uq_cs_tickets_ticket_no"),)
@@ -164,7 +164,7 @@ Index("idx_cs_tickets_status", CsTicket.status, CsTicket.updated_at.desc())
 
 
 class CsTicketReply(Base):
-    """Bidirectional reply entry on an asynchronous support ticket."""
+    """异步支持工单上的双向回复记录。"""
 
     __tablename__ = "cs_ticket_replies"
 
@@ -198,7 +198,7 @@ Index(
 
 
 class KbDocument(Base):
-    """Knowledge base PDF document metadata and ingestion status ledger."""
+    """知识库 PDF 文档元数据与入库状态台账。"""
 
     __tablename__ = "kb_documents"
     __table_args__ = (UniqueConstraint("file_sha256", name="uk_kb_doc_sha256"),)

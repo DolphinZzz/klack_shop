@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.config import get_settings
 from app.db.base import Base
-import app.db.models  # noqa: F401 - register models with Base.metadata
+import app.db.models  # noqa: F401 - 将 ORM 模型注册到 Base.metadata
 
 config = context.config
 
@@ -22,7 +22,7 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode using configured PostgreSQL DSN."""
+    """使用已配置的 PostgreSQL DSN 以离线模式运行数据库迁移。"""
     url = settings.postgres_dsn
     context.configure(
         url=url,
@@ -36,7 +36,7 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    """Execute migrations synchronously over an active DBAPI connection."""
+    """在活动的数据库连接上同步执行迁移。"""
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
@@ -44,7 +44,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """Create an async engine and run migrations inside run_sync."""
+    """创建异步数据库引擎并通过 run_sync 执行迁移。"""
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -58,7 +58,7 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' async mode."""
+    """以在线异步模式运行数据库迁移。"""
     asyncio.run(run_async_migrations())
 
 

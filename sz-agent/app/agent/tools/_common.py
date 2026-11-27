@@ -11,7 +11,7 @@ _TWO_PLACES = Decimal("0.01")
 
 
 def pick_field(mapping: Mapping[str, Any], *keys: str, default: Any = None) -> Any:
-    """Return the first present non-None value among *keys* in *mapping*."""
+    """返回 `mapping` 中按 `keys` 顺序找到的第一个非 `None` 值。"""
     for key in keys:
         if key in mapping and mapping[key] is not None:
             return mapping[key]
@@ -19,7 +19,7 @@ def pick_field(mapping: Mapping[str, Any], *keys: str, default: Any = None) -> A
 
 
 def to_int(value: Any, default: int = 0) -> int:
-    """Convert *value* to int, falling back to *default* when missing or malformed."""
+    """将 `value` 转换为整数，缺失或格式非法时回退为 `default`。"""
     if value is None or isinstance(value, bool):
         return default
     try:
@@ -29,7 +29,7 @@ def to_int(value: Any, default: int = 0) -> int:
 
 
 def to_optional_int(value: Any) -> int | None:
-    """Convert *value* to int if present and valid, else None."""
+    """当 `value` 存在且合法时转换为整数，否则返回 `None`。"""
     if value is None or isinstance(value, bool):
         return None
     try:
@@ -39,7 +39,7 @@ def to_optional_int(value: Any) -> int | None:
 
 
 def parse_decimal(value: Any, default: str = "0.00") -> Decimal:
-    """Safely parse numeric or string currency values into a finite Decimal."""
+    """安全地将数值或字符串金额解析为有限的 `Decimal`。"""
     if value is None or isinstance(value, bool):
         return Decimal(default)
     try:
@@ -52,13 +52,13 @@ def parse_decimal(value: Any, default: str = "0.00") -> Decimal:
 
 
 def format_decimal(value: Any, default: str = "0.00") -> str:
-    """Quantize a currency value to two decimal places using ROUND_HALF_UP."""
+    """使用 `ROUND_HALF_UP` 四舍五入将金额格式化为两位小数字符串。"""
     dec = parse_decimal(value, default=default).quantize(_TWO_PLACES, rounding=ROUND_HALF_UP)
     return f"{dec:.2f}"
 
 
 def format_optional_decimal(value: Any) -> str | None:
-    """Quantize an optional currency value to two decimal places or return None."""
+    """将可选金额四舍五入格式化为两位小数字符串，缺失或非法时返回 `None`。"""
     if value is None or isinstance(value, bool):
         return None
     try:
@@ -71,7 +71,7 @@ def format_optional_decimal(value: Any) -> str | None:
 
 
 def clamp_limit(limit: int, default: int, *, maximum: int = 20) -> int:
-    """Clamp list query limits to `[1, maximum]`."""
+    """将列表查询条数限制收敛在 `[1, maximum]` 区间内。"""
     val = to_int(limit, default)
     if val < 1:
         return default
@@ -79,7 +79,7 @@ def clamp_limit(limit: int, default: int, *, maximum: int = 20) -> int:
 
 
 def resolve_full_address(address: Mapping[str, Any]) -> str:
-    """Return `fullAddress` or join province/city/district/detail fields."""
+    """优先返回 `fullAddress`，否则拼接省、市、区与详细地址字段。"""
     explicit = pick_field(address, "fullAddress", "full_address", default="")
     if isinstance(explicit, str) and explicit.strip():
         return explicit.strip()
@@ -92,7 +92,7 @@ def resolve_full_address(address: Mapping[str, Any]) -> str:
 
 
 def normalize_user_address(address: Mapping[str, Any]) -> dict[str, Any]:
-    """Normalize Java AgentMallVO.UserAddress into snake_case tool payload."""
+    """将 Java `AgentMallVO.UserAddress` 规范化为下划线命名（`snake_case`）的工具返回载荷。"""
     return {
         "id": to_optional_int(address.get("id")),
         "real_name": str(pick_field(address, "realName", "real_name", default="") or ""),
@@ -137,7 +137,7 @@ def _hit_to_dict(hit: Any) -> dict[str, Any]:
 
 
 def format_kb_results(hits: list[Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Convert raw KB hits into `(hits, citations)` structured dictionaries."""
+    """将原始知识库检索命中项转换为 `(hits, citations)` 结构化字典列表。"""
     formatted_hits = [_hit_to_dict(hit) for hit in hits]
     citations = [
         {
@@ -164,7 +164,7 @@ async def search_kb(
     top_k: int,
     empty_message: str,
 ) -> dict[str, Any]:
-    """Run a category-scoped KB retrieval with graceful handling of empty or missing stores."""
+    """执行限定分类的知识库检索，并妥善兜底空结果或检索器未就绪等情况。"""
     cleaned_query = (query or "").strip()
     if not cleaned_query:
         return {
@@ -195,7 +195,7 @@ async def search_kb(
             categories=categories,
             top_k=bounded_top_k,
         )
-    except Exception as exc:  # noqa: BLE001 - keep tool boundary resilient for LLM
+    except Exception as exc:  # noqa: BLE001 - 保持工具边界容错，避免异常中断 LLM 调用
         logger.warning("KB retrieval failed for categories=%s: %s", categories, exc)
         return {
             "ok": False,

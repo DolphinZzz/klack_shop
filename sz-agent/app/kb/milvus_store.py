@@ -29,7 +29,7 @@ _OUTPUT_FIELDS = [
 
 @dataclass(slots=True)
 class KbSearchHit:
-    """Single retrieved knowledge base chunk with cosine similarity score."""
+    """附带余弦相似度分数的单条知识库检索命中分块。"""
 
     chunk_id: str
     doc_id: str
@@ -46,7 +46,7 @@ class KbSearchHit:
 
 
 def _truncate_utf8(value: str, max_bytes: int) -> str:
-    """Truncate *value* cleanly on a UTF-8 character boundary within *max_bytes*."""
+    """在 *max_bytes* 字节上限内按 UTF-8 字符边界安全截断 *value*。"""
     encoded = value.encode("utf-8")
     if len(encoded) <= max_bytes:
         return value
@@ -75,7 +75,7 @@ def _build_search_filter(categories: list[str] | None) -> str:
 
 
 class MilvusKbStore:
-    """Milvus collection wrapper managing `kada_cs_kb_chunks` schema, upserts, and search."""
+    """管理 `kada_cs_kb_chunks` Schema、向量写入更新与检索的 Milvus 集合封装。"""
 
     def __init__(
         self,
@@ -95,7 +95,7 @@ class MilvusKbStore:
 
     @classmethod
     def from_settings(cls, settings: Settings, **overrides: Any) -> MilvusKbStore:
-        """Instantiate MilvusKbStore from runtime application settings."""
+        """根据运行时应用配置实例化 MilvusKbStore。"""
         kwargs: dict[str, Any] = {
             "uri": settings.milvus_uri,
             "collection_name": settings.milvus_collection,
@@ -145,7 +145,7 @@ class MilvusKbStore:
             self._collection_ready = True
 
     async def ensure_collection(self) -> None:
-        """Ensure the Milvus collection and HNSW cosine index exist and are loaded."""
+        """确保 Milvus 集合及 HNSW COSINE 索引已创建并加载至内存。"""
         await asyncio.to_thread(self._ensure_collection_sync)
 
     def _upsert_chunks_sync(self, chunks: list[KbChunk], vectors: list[list[float]]) -> int:
@@ -172,7 +172,7 @@ class MilvusKbStore:
         return len(rows)
 
     async def upsert_chunks(self, chunks: list[KbChunk], vectors: list[list[float]]) -> int:
-        """Upsert chunk payloads and 1024-d vectors into Milvus."""
+        """将分块元数据与 1024 维向量写入或更新至 Milvus。"""
         if len(chunks) != len(vectors):
             raise ValueError(
                 f"Chunk count ({len(chunks)}) does not match vector count ({len(vectors)})"
@@ -189,7 +189,7 @@ class MilvusKbStore:
         client.delete(collection_name=self.collection_name, filter=f'doc_id == "{escaped}"')
 
     async def delete_by_doc_id(self, doc_id: str | UUID) -> None:
-        """Delete all vector chunks belonging to *doc_id*."""
+        """删除归属于 *doc_id* 的全部向量分块。"""
         await asyncio.to_thread(self._delete_by_doc_id_sync, str(doc_id))
 
     def _search_sync(
@@ -243,7 +243,7 @@ class MilvusKbStore:
         top_k: int = 5,
         min_score: float | None = None,
     ) -> list[KbSearchHit]:
-        """Search public KB chunks filtered by optional categories and minimum cosine score."""
+        """按可选分类与最低 COSINE 相似度阈值检索公开知识库分块。"""
         normalized_categories = _normalize_categories(categories)
         if normalized_categories is not None and len(normalized_categories) == 0:
             return []
@@ -258,7 +258,7 @@ class MilvusKbStore:
 
 
 class KbRetriever:
-    """High-level async retriever combining Qwen embeddings with MilvusKbStore."""
+    """结合 Qwen 向量模型与 MilvusKbStore 的高层异步检索器。"""
 
     def __init__(self, embeddings: Any, milvus_store: MilvusKbStore) -> None:
         self.embeddings = embeddings
@@ -271,7 +271,7 @@ class KbRetriever:
         top_k: int = 5,
         min_score: float | None = None,
     ) -> list[KbSearchHit]:
-        """Embed *query* and return filtered KB chunks above the similarity threshold."""
+        """将 *query* 向量化并返回高于相似度阈值的知识库分块列表。"""
         if not query or not query.strip():
             return []
         if hasattr(self.embeddings, "aembed_query"):

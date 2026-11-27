@@ -152,7 +152,7 @@ def build_recommend_order_subgraph(
     kb_retriever: Any,
     llm_factory: LlmFactory,
 ) -> CompiledStateGraph:
-    """Build the product recommendation and interrupt-confirmed order subgraph."""
+    """构建商品推荐与基于 `interrupt` 人工确认下单的子图。"""
     shopping_tools = build_shopping_tools(mall_client, kb_retriever)
     shopping_agent = create_agent(
         model=llm_factory("shopping"),
