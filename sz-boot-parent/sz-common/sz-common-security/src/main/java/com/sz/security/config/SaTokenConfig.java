@@ -54,12 +54,12 @@ public class SaTokenConfig implements WebMvcConfigurer {
                     StpUserTokenRedisUtil.checkToken();
                 }))
                 .addPathPatterns("/client/**", "/**/front/**")
-                .excludePathPatterns("/internal/agent/**")
+                .excludePathPatterns("/internal/agent/**", "/error")
                 .excludePathPatterns(new ArrayList<>(whitelistProperties.getWhitelist()));
         // 管理端 拦截 (排除 /front/ 与 /internal/agent/**)
         registry.addInterceptor(new MySaInterceptor(handler -> StpUtil.checkLogin()))
                 .addPathPatterns("/**")
-                .excludePathPatterns("/client/**", "/**/front/**", "/internal/agent/**")
+                .excludePathPatterns("/client/**", "/**/front/**", "/internal/agent/**", "/error")
                 .excludePathPatterns(new ArrayList<>(whitelistProperties.getWhitelist()));
     }
 }

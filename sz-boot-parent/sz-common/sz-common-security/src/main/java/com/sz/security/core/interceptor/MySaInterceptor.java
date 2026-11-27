@@ -8,6 +8,7 @@ import cn.dev33.satoken.interceptor.SaInterceptor;
 import cn.dev33.satoken.strategy.SaAnnotationStrategy;
 import com.sz.core.common.entity.ControlPermissions;
 import com.sz.core.datascope.ControlThreadLocal;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.lang.NonNull;
@@ -31,6 +32,12 @@ public class MySaInterceptor extends SaInterceptor {
     @Override
     @SuppressWarnings("all")
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // SseEmitter / DeferredResult 完成阶段触发的 ASYNC 二次分发（以及容器内部 ERROR 分发）不经过 SaTokenContextFilter；
+        // 首轮 DispatcherType.REQUEST 已完成完整鉴权，此处必须放行以正常写入 chunked 结束帧
+        DispatcherType dispatcherType = request.getDispatcherType();
+        if (DispatcherType.ASYNC.equals(dispatcherType) || DispatcherType.ERROR.equals(dispatcherType)) {
+            return true;
+        }
         try {
             // 这里必须确保 handler 是 HandlerMethod 类型时，才能进行注解鉴权
             if (isAnnotation && handler instanceof HandlerMethod) {
